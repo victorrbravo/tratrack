@@ -1,0 +1,120 @@
+{
+  "name": "BEST THINGS TO DO IN PARIS",
+  "summary": "A creative travel guide showcasing the best attractions and experiences in Paris, from iconic landmarks and museums to neighborhoods, river cruises, and food.",
+  "places": [
+    {
+      "id": 1,
+      "name": "Eiffel Tower",
+      "start_seconds": 0,
+      "end_seconds": 67
+    },
+    {
+      "id": 2,
+      "name": "Louvre Museum",
+      "start_seconds": 68,
+      "end_seconds": 95
+    },
+    {
+      "id": 3,
+      "name": "Notre-Dame Cathedral",
+      "start_seconds": 96,
+      "end_seconds": 116
+    },
+    {
+      "id": 4,
+      "name": "Seine River",
+      "start_seconds": 117,
+      "end_seconds": 140
+    },
+    {
+      "id": 5,
+      "name": "Sacre Coeur Basilica",
+      "start_seconds": 141,
+      "end_seconds": 170
+    },
+    {
+      "id": 6,
+      "name": "Montmartre",
+      "start_seconds": 143,
+      "end_seconds": 160
+    },
+    {
+      "id": 7,
+      "name": "Musee d'Orsay",
+      "start_seconds": 171,
+      "end_seconds": 188
+    },
+    {
+      "id": 8,
+      "name": "Arc de Triomphe",
+      "start_seconds": 217,
+      "end_seconds": 244
+    },
+    {
+      "id": 9,
+      "name": "Champs-Elysees",
+      "start_seconds": 220,
+      "end_seconds": 244
+    },
+    {
+      "id": 10,
+      "name": "Sainte-Chapelle",
+      "start_seconds": 245,
+      "end_seconds": 256
+    },
+    {
+      "id": 11,
+      "name": "Palace of Versailles",
+      "start_seconds": 256,
+      "end_seconds": 281
+    },
+    {
+      "id": 12,
+      "name": "Moulin Rouge",
+      "start_seconds": 281,
+      "end_seconds": 297
+    },
+    {
+      "id": 13,
+      "name": "Pere Lachaise Cemetery",
+      "start_seconds": 298,
+      "end_seconds": 317
+    },
+    {
+      "id": 14,
+      "name": "Paris Catacombs",
+      "start_seconds": 318,
+      "end_seconds": 334
+    },
+    {
+      "id": 15,
+      "name": "Disneyland Paris",
+      "start_seconds": 334,
+      "end_seconds": 364
+    },
+    {
+      "id": 16,
+      "name": "Le Marais",
+      "start_seconds": 365,
+      "end_seconds": 378
+    },
+    {
+      "id": 17,
+      "name": "Food Markets",
+      "start_seconds": 379,
+      "end_seconds": 400
+    },
+    {
+      "id": 18,
+      "name": "Musee de l'Orangerie",
+      "start_seconds": 401,
+      "end_seconds": 424
+    },
+    {
+      "id": 19,
+      "name": "Picasso Museum",
+      "start_seconds": 425,
+      "end_seconds": 439
+    }
+  ]
+}
