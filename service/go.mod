@@ -54,4 +54,4 @@ require (
 	oss.terrastruct.com/util-go v0.0.0-20231101220827-55b3812542c2 // indirect
 )
 
-replace github.com/victorrbravo/stories-service => ../..
+replace github.com/victorrbravo/stories-service => ../../echoServer/thirds/stories-service
