@@ -7,12 +7,18 @@ struct ContentView: View {
         VStack(spacing: 0) {
             topBar
             if let status = model.status {
-                Text(status)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
+                HStack(spacing: 8) {
+                    Text(status)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    if let progress = model.analysisProgress {
+                        ProgressView(value: Double(progress), total: 100)
+                            .frame(width: 120)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 8)
             }
             Divider()
 

@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package tratrack.analysis.v1;
+
+option go_package = "tratrack/service/api/pb;pb";
+
+// AnalysisService runs a long analysis (5-8 min) asynchronously.
+//
+// Flow for the macOS UI:
+//   1. StartAnalysis(id_file) -> job_id          (returns immediately)
+//   2. SubscribeAnalysis(job_id) -> stream       (push: server notifies the
+//      UI as soon as the job finishes, no polling needed)
+//   3. StatusAnalysis(job_id) -> status          (polling fallback)
+//   4. LastResult() -> result of the most recent completed job
+service AnalysisService {
+  rpc StartAnalysis(StartAnalysisRequest) returns (StartAnalysisResponse);
+  rpc StatusAnalysis(StatusAnalysisRequest) returns (StatusAnalysisResponse);
+  rpc LastResult(LastResultRequest) returns (LastResultResponse);
+  // Server-streaming push channel: emits the current snapshot immediately,
+  // then one event per status/progress change, ending with a terminal
+  // (COMPLETED or FAILED) event, after which the stream closes.
+  rpc SubscribeAnalysis(SubscribeAnalysisRequest) returns (stream AnalysisEvent);
+}
+
+enum JobStatus {
+  JOB_STATUS_UNSPECIFIED = 0;
+  PENDING = 1;
+  RUNNING = 2;
+  COMPLETED = 3;
+  FAILED = 4;
+}
+
+message StartAnalysisRequest {
+  string id_file = 1;
+}
+
+message StartAnalysisResponse {
+  string job_id = 1;
+  JobStatus status = 2;
+}
+
+message StatusAnalysisRequest {
+  string job_id = 1;
+}
+
+message StatusAnalysisResponse {
+  string job_id = 1;
+  string id_file = 2;
+  JobStatus status = 3;
+  int32 progress_percent = 4; // 0-100
+  string error = 5;           // set only when status == FAILED
+  string created_at = 6;      // RFC 3339
+  string updated_at = 7;      // RFC 3339
+  string finished_at = 8;     // RFC 3339, empty until terminal
+}
+
+message LastResultRequest {}
+
+message LastResultResponse {
+  string job_id = 1;
+  string id_file = 2;
+  JobStatus status = 3;
+  string result_json = 4; // analysis output, JSON encoded
+  string finished_at = 5; // RFC 3339
+}
+
+message SubscribeAnalysisRequest {
+  string job_id = 1;
+}
+
+message AnalysisEvent {
+  string job_id = 1;
+  string id_file = 2;
+  JobStatus status = 3;
+  int32 progress_percent = 4;
+  string error = 5;
+  string result_json = 6; // set only on the terminal COMPLETED event
+  string updated_at = 7;  // RFC 3339
+}

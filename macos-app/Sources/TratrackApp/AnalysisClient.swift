@@ -1,0 +1,77 @@
+import Foundation
+import GRPCCore
+import GRPCNIOTransportHTTP2Posix
+@preconcurrency import UserNotifications
+
+/// One progress/terminal update pushed by the server on SubscribeAnalysis.
+struct AnalysisUpdate: Sendable {
+    var jobID: String
+    var status: String
+    var progress: Int
+    var resultJSON: String
+    var error: String
+
+    var isFinished: Bool { status == "COMPLETED" }
+    var isFailed: Bool { status == "FAILED" }
+}
+
+/// Talks to the tratrack analysis gRPC service (service/cmd/server).
+/// StartAnalysis returns immediately with a job id; the server then *pushes*
+/// updates on SubscribeAnalysis, so the UI is notified the moment the
+/// 5-8 minute job finishes instead of polling StatusAnalysis.
+struct AnalysisServiceClient: Sendable {
+    var host = "localhost"
+    var port = 50051
+
+    /// Starts a job for `idFile` and calls `onUpdate` for every pushed event,
+    /// returning after the terminal (COMPLETED/FAILED) event.
+    func startAndWatch(idFile: String, onUpdate: @escaping @Sendable (AnalysisUpdate) async -> Void) async throws {
+        let transport = try HTTP2ClientTransport.Posix(
+            target: .dns(host: host, port: port),
+            transportSecurity: .plaintext
+        )
+        try await withGRPCClient(transport: transport) { grpcClient in
+            let service = Tratrack_Analysis_V1_AnalysisService.Client(wrapping: grpcClient)
+
+            var startRequest = Tratrack_Analysis_V1_StartAnalysisRequest()
+            startRequest.idFile = idFile
+            let started = try await service.startAnalysis(startRequest)
+            let jobID = started.jobID
+
+            var subscribeRequest = Tratrack_Analysis_V1_SubscribeAnalysisRequest()
+            subscribeRequest.jobID = jobID
+            try await service.subscribeAnalysis(subscribeRequest) { response in
+                for try await event in response.messages {
+                    await onUpdate(AnalysisUpdate(
+                        jobID: event.jobID,
+                        status: "\(event.status)",
+                        progress: Int(event.progressPercent),
+                        resultJSON: event.resultJson,
+                        error: event.error
+                    ))
+                }
+            }
+        }
+    }
+}
+
+/// Posts a macOS banner notification when an analysis finishes.
+enum AnalysisNotifier {
+    static func notifyFinished(jobID: String, failed: Bool) {
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            guard granted else { return }
+            let content = UNMutableNotificationContent()
+            content.title = failed ? "Analysis failed" : "Analysis finished"
+            content.body = failed
+                ? "The analysis job \(jobID) failed."
+                : "Your analysis is ready (job \(jobID))."
+            content.sound = .default
+            center.add(UNNotificationRequest(
+                identifier: "analysis-\(jobID)",
+                content: content,
+                trigger: nil
+            ))
+        }
+    }
+}
