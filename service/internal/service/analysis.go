@@ -188,19 +188,19 @@ func (a MuseAnalyzer) Analyze(ctx context.Context, idFile string, progress func(
 	if err != nil {
 		return "", fmt.Errorf("step 1 (places): %w", err)
 	}
-	progress(25)
+	progress(20)
 
 	result, err = commands.Tips(ctx, a.APIKey, idFile, result)
 	if err != nil {
 		return "", fmt.Errorf("step 2 (tips): %w", err)
 	}
-	progress(50)
+	progress(40)
 
 	result, err = commands.Duration(ctx, a.APIKey, idFile, result)
 	if err != nil {
 		return "", fmt.Errorf("step 3 (duration): %w", err)
 	}
-	progress(75)
+	progress(60)
 
 	loc := a.Location
 	if loc == "" {
@@ -209,6 +209,12 @@ func (a MuseAnalyzer) Analyze(ctx context.Context, idFile string, progress func(
 	result, err = commands.Location(ctx, a.APIKey, result, loc)
 	if err != nil {
 		return "", fmt.Errorf("step 4 (location): %w", err)
+	}
+	progress(80)
+
+	result, err = commands.StorePlaces(ctx, result)
+	if err != nil {
+		return "", fmt.Errorf("step 5 (storeplaces): %w", err)
 	}
 	progress(100)
 
