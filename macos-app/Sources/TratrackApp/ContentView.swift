@@ -37,22 +37,27 @@ struct ContentView: View {
         .frame(minWidth: 720, minHeight: 640)
         .dropDestination(for: URL.self) { urls, _ in
             var opened = false
-            for url in urls {
-                opened = model.open(url) || opened
-            }
+            for url in urls { opened = model.open(url) || opened }
             return opened
+        }
+        .sheet(isPresented: $model.showAnalysisDialog) {
+            AnalysisDialogView(model: model)
         }
     }
 
     private var topBar: some View {
         HStack(spacing: 10) {
-            Button(action: model.loadVideo) {
-                Label(model.movieURL?.lastPathComponent ?? "Load MP4", systemImage: "film")
+            Button(action: model.openAnalysisDialog) {
+                Label(model.fileIDLabel, systemImage: "film")
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .frame(maxWidth: 180)
             }
-            .help(model.movieURL?.path ?? "Load an MP4 video")
+            .help(
+                model.fileIDInput.isEmpty
+                    ? "Enter a Muse file ID to start analysis"
+                    : model.fileIDInput
+            )
 
             Button(action: model.loadJSON) {
                 Label(model.workflowFileName.map { "\($0).json" } ?? "Load JSON", systemImage: "doc.text")
@@ -91,5 +96,55 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Paper.background)
+    }
+}
+
+private struct AnalysisDialogView: View {
+    @Bindable var model: AppModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Start Analysis")
+                .font(.headline)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("File ID")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                TextField("Enter Muse file ID…", text: $model.fileIDInput)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(minWidth: 360)
+                    .onSubmit { startIfReady() }
+            }
+
+            if let status = model.status {
+                Text(status)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel") {
+                    model.showAnalysisDialog = false
+                }
+                .keyboardShortcut(.cancelAction)
+
+                Button("Run Analysis") {
+                    startIfReady()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(model.fileIDInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+    }
+
+    private func startIfReady() {
+        guard !model.fileIDInput.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        model.showAnalysisDialog = false
+        model.run()
     }
 }

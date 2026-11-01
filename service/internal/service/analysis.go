@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -126,32 +127,43 @@ func (s *Service) StartAnalysis(ctx context.Context, idFile string) (*models.Job
 }
 
 func (s *Service) run(jobID, idFile string) {
+	log.Printf("[service] run start jobID=%s idFile=%q", jobID, idFile)
 	ctx := context.Background()
 	if s.timeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, s.timeout)
 		defer cancel()
+		log.Printf("[service] job timeout set to %s", s.timeout)
 	}
 
 	job, err := s.store.MarkRunning(ctx, jobID)
 	if err != nil {
+		log.Printf("[service] MarkRunning error: %v", err)
 		return
 	}
+	log.Printf("[service] jobID=%s marked RUNNING — publishing to broker", jobID)
 	s.broker.Publish(job)
 
 	result, err := s.analyzer.Analyze(ctx, idFile, func(pct int) {
+		log.Printf("[service] jobID=%s progress=%d%% — updating store and publishing", jobID, pct)
 		if j, err := s.store.UpdateProgress(context.Background(), jobID, pct); err == nil {
 			s.broker.Publish(j)
+		} else {
+			log.Printf("[service] UpdateProgress(%d) error: %v", pct, err)
 		}
 	})
 	if err != nil {
+		log.Printf("[service] jobID=%s Analyze error: %v — marking FAILED", jobID, err)
 		if j, ferr := s.store.Fail(context.Background(), jobID, err.Error()); ferr == nil {
 			s.broker.Publish(j)
 		}
 		return
 	}
+	log.Printf("[service] jobID=%s Analyze done (result %d bytes) — marking COMPLETED", jobID, len(result))
 	if j, err := s.store.Complete(context.Background(), jobID, result); err == nil {
 		s.broker.Publish(j) // terminal event: SubscribeAnalysis streams notify the UI here
+	} else {
+		log.Printf("[service] Complete error: %v", err)
 	}
 }
 

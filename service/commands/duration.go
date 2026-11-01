@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var numberRe = regexp.MustCompile(`\d+(?:\.\d+)?`)
@@ -24,12 +26,18 @@ func Duration(ctx context.Context, apiKey, fileID, inputJSON string) (string, er
 		analysis.Places = []Place{}
 	}
 
+	total := len(analysis.Places)
+	log.Printf("[duration] starting: %d places to enrich", total)
 	for i := range analysis.Places {
 		p := &analysis.Places[i]
+		log.Printf("[duration] place %d/%d %q", i+1, total, p.Name)
+		t0 := time.Now()
 		spent, err := askSpent(ctx, apiKey, fileID, analysis, *p)
 		if err != nil {
+			log.Printf("[duration] ✗ place %d/%d %q failed after %s: %v", i+1, total, p.Name, time.Since(t0).Round(time.Millisecond), err)
 			return "", fmt.Errorf("place %q: %w", p.Name, err)
 		}
+		log.Printf("[duration] ✓ place %d/%d %q done in %s — spent=%dmin", i+1, total, p.Name, time.Since(t0).Round(time.Millisecond), spent)
 		p.Spent = spent
 	}
 

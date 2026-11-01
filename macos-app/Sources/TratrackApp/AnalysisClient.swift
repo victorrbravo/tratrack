@@ -26,22 +26,36 @@ struct AnalysisServiceClient: Sendable {
     /// Starts a job for `idFile` and calls `onUpdate` for every pushed event,
     /// returning after the terminal (COMPLETED/FAILED) event.
     func startAndWatch(idFile: String, onUpdate: @escaping @Sendable (AnalysisUpdate) async -> Void) async throws {
+        dbg("connecting to \(host):\(port) for idFile=\(idFile)")
+
         let transport = try HTTP2ClientTransport.Posix(
             target: .dns(host: host, port: port),
             transportSecurity: .plaintext
         )
+
         try await withGRPCClient(transport: transport) { grpcClient in
+            dbg("gRPC client ready")
             let service = Tratrack_Analysis_V1_AnalysisService.Client(wrapping: grpcClient)
 
+            // Step 1: start the job
             var startRequest = Tratrack_Analysis_V1_StartAnalysisRequest()
             startRequest.idFile = idFile
+            dbg("→ StartAnalysis(idFile: \(idFile))")
             let started = try await service.startAnalysis(startRequest)
             let jobID = started.jobID
+            dbg("← StartAnalysis returned jobID=\(jobID) status=\(started.status)")
 
+            // Step 2: subscribe to progress/completion push events
             var subscribeRequest = Tratrack_Analysis_V1_SubscribeAnalysisRequest()
             subscribeRequest.jobID = jobID
+            dbg("→ SubscribeAnalysis(jobID: \(jobID)) — waiting for server events")
+
             try await service.subscribeAnalysis(subscribeRequest) { response in
+                dbg("SubscribeAnalysis stream opened")
+                var eventCount = 0
                 for try await event in response.messages {
+                    eventCount += 1
+                    dbg("← event #\(eventCount): status=\(event.status) progress=\(event.progressPercent)% error=\(event.error.isEmpty ? "none" : event.error)")
                     await onUpdate(AnalysisUpdate(
                         jobID: event.jobID,
                         status: "\(event.status)",
@@ -50,9 +64,19 @@ struct AnalysisServiceClient: Sendable {
                         error: event.error
                     ))
                 }
+                dbg("SubscribeAnalysis stream closed after \(eventCount) event(s)")
             }
+            dbg("subscribeAnalysis completed for jobID=\(jobID)")
         }
+        dbg("withGRPCClient block exited — startAndWatch done")
     }
+}
+
+// MARK: - helpers
+
+private func dbg(_ message: String, file: String = #file, line: Int = #line) {
+    let src = URL(fileURLWithPath: file).lastPathComponent
+    print("[GRPC \(src):\(line)] \(message)")
 }
 
 /// Posts a macOS banner notification when an analysis finishes.

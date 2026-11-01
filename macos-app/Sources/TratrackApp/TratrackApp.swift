@@ -18,7 +18,7 @@ struct TratrackApp: App {
         }
         .commands {
             CommandMenu("Actions") {
-                Button("Load Video…", action: model.loadVideo)
+                Button("Analyze…", action: model.openAnalysisDialog)
                     .keyboardShortcut("o", modifiers: [.command, .shift])
                 Button("Load JSON…", action: model.loadJSON)
                     .keyboardShortcut("o")

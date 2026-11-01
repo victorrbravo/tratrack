@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 const museAPIBase = "https://api.meta.ai/v1"
@@ -74,6 +76,7 @@ func museCall(ctx context.Context, apiKey string, payload map[string]any) (strin
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
+	t0 := time.Now()
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("calling Muse API: %w", err)
@@ -81,9 +84,11 @@ func museCall(ctx context.Context, apiKey string, payload map[string]any) (strin
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
+	elapsed := time.Since(t0)
 	if err != nil {
 		return "", err
 	}
+	log.Printf("[muse] HTTP %s  body=%d bytes  elapsed=%s", resp.Status, len(respBody), elapsed.Round(time.Millisecond))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return "", fmt.Errorf("Muse API error (%s): %s", resp.Status, respBody)
 	}

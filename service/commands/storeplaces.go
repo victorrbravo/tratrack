@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -83,10 +84,13 @@ func StorePlaces(ctx context.Context, inputJSON string) (string, error) {
 	storyCtx := context.WithValue(ctx, "email", email)
 	storyCtx = context.WithValue(storyCtx, "user_id", userID)
 
+	log.Printf("[storeplaces] creating story %q (user=%d, email=%s, contentType=%s)", analysis.Name, userID, email, contentType)
 	ticket, err := storeCreateStory(storyCtx, &query, analysis, email, contentType, userID)
 	if err != nil {
+		log.Printf("[storeplaces] ✗ createStory failed: %v", err)
 		return "", fmt.Errorf("creating story: %w", err)
 	}
+	log.Printf("[storeplaces] ✓ story created: ticket=%d", ticket)
 
 	sorted := make([]Place, len(analysis.Places))
 	copy(sorted, analysis.Places)
@@ -94,10 +98,13 @@ func StorePlaces(ctx context.Context, inputJSON string) (string, error) {
 
 	now := time.Now()
 	mediaDate := time.Date(now.Year(), now.Month(), now.Day(), 8, 0, 0, 0, now.Location())
-	for _, place := range sorted {
+	for k, place := range sorted {
+		log.Printf("[storeplaces] adding step %d/%d %q (mediaDate=%s)", k+1, len(sorted), place.Name, mediaDate.Format("15:04"))
 		if err := storeAddFlowStep(storyCtx, &query, ticket, place, mediaDate); err != nil {
+			log.Printf("[storeplaces] ✗ addFlowStep %q failed: %v", place.Name, err)
 			return "", fmt.Errorf("adding place %q: %w", place.Name, err)
 		}
+		log.Printf("[storeplaces] ✓ step %d/%d %q added", k+1, len(sorted), place.Name)
 		if place.Spent > 0 {
 			mediaDate = mediaDate.Add(time.Duration(place.Spent) * time.Minute)
 		}

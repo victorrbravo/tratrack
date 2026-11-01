@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
+	"time"
 )
 
 // Places calls the Muse API to extract every place visited, shown, or named in
@@ -41,14 +43,20 @@ Rules:
 		},
 	}
 
+	log.Printf("[places] → calling Muse API for fileID=%s", fileID)
+	t0 := time.Now()
 	text, err := museCall(ctx, apiKey, payload)
 	if err != nil {
+		log.Printf("[places] ✗ museCall error after %s: %v", time.Since(t0).Round(time.Millisecond), err)
 		return "", err
 	}
+	log.Printf("[places] ← museCall returned in %s", time.Since(t0).Round(time.Millisecond))
 	analysis, err := parsePlaces(text)
 	if err != nil {
+		log.Printf("[places] ✗ parsePlaces error: %v", err)
 		return "", err
 	}
+	log.Printf("[places] ✓ found %d places", len(analysis.Places))
 	out, err := json.Marshal(analysis)
 	if err != nil {
 		return "", err

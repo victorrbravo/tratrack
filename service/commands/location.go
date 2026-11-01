@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var locationRe = regexp.MustCompile(`^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)$`)
@@ -28,10 +30,14 @@ func Location(ctx context.Context, apiKey, inputJSON, cityOrCountry string) (str
 	}
 
 	if len(analysis.Places) > 0 {
+		log.Printf("[location] → batch geocoding %d places (context: %q)", len(analysis.Places), cityOrCountry)
+		t0 := time.Now()
 		locs, err := askLocations(ctx, apiKey, cityOrCountry, analysis.Places)
 		if err != nil {
+			log.Printf("[location] ✗ askLocations failed after %s: %v", time.Since(t0).Round(time.Millisecond), err)
 			return "", err
 		}
+		log.Printf("[location] ✓ got %d/%d locations in %s", len(locs), len(analysis.Places), time.Since(t0).Round(time.Millisecond))
 		for i := range analysis.Places {
 			if loc, ok := locs[analysis.Places[i].ID]; ok {
 				analysis.Places[i].Location = loc

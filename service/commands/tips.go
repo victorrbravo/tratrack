@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
+	"time"
 )
 
 const maxTags = 7
@@ -21,12 +23,18 @@ func Tips(ctx context.Context, apiKey, fileID, inputJSON string) (string, error)
 		analysis.Places = []Place{}
 	}
 
+	total := len(analysis.Places)
+	log.Printf("[tips] starting: %d places to enrich", total)
 	for i := range analysis.Places {
 		p := &analysis.Places[i]
+		log.Printf("[tips] place %d/%d %q [%.0fs–%.0fs]", i+1, total, p.Name, p.StartSeconds, p.EndSeconds)
+		t0 := time.Now()
 		tips, tags, err := askTips(ctx, apiKey, fileID, *p)
 		if err != nil {
+			log.Printf("[tips] ✗ place %d/%d %q failed after %s: %v", i+1, total, p.Name, time.Since(t0).Round(time.Millisecond), err)
 			return "", fmt.Errorf("place %q: %w", p.Name, err)
 		}
+		log.Printf("[tips] ✓ place %d/%d %q done in %s — %d tips, %d tags", i+1, total, p.Name, time.Since(t0).Round(time.Millisecond), len(tips), len(tags))
 		p.Tips = tips
 		p.Tags = tags
 	}

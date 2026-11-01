@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"log"
 	"strings"
 	"time"
 
@@ -22,13 +23,16 @@ type Handler struct {
 func New(svc *service.Service) *Handler { return &Handler{svc: svc} }
 
 func (h *Handler) StartAnalysis(ctx context.Context, req *pb.StartAnalysisRequest) (*pb.StartAnalysisResponse, error) {
+	log.Printf("[handler] StartAnalysis idFile=%q", req.GetIdFile())
 	if strings.TrimSpace(req.GetIdFile()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "id_file is required")
 	}
 	job, err := h.svc.StartAnalysis(ctx, req.GetIdFile())
 	if err != nil {
+		log.Printf("[handler] StartAnalysis error: %v", err)
 		return nil, status.Errorf(codes.Internal, "create job: %v", err)
 	}
+	log.Printf("[handler] StartAnalysis → jobID=%s status=%s", job.ID, job.Status)
 	return &pb.StartAnalysisResponse{JobId: job.ID, Status: toProtoStatus(job.Status)}, nil
 }
 
@@ -69,8 +73,10 @@ func (h *Handler) LastResult(ctx context.Context, _ *pb.LastResultRequest) (*pb.
 // StartAnalysis and is notified on this stream the moment the job finishes,
 // instead of polling StatusAnalysis for 5-8 minutes.
 func (h *Handler) SubscribeAnalysis(req *pb.SubscribeAnalysisRequest, stream pb.AnalysisService_SubscribeAnalysisServer) error {
+	log.Printf("[handler] SubscribeAnalysis jobID=%q — stream opened", req.GetJobId())
 	job, err := h.lookup(stream.Context(), req.GetJobId())
 	if err != nil {
+		log.Printf("[handler] SubscribeAnalysis lookup error: %v", err)
 		return err
 	}
 
@@ -78,21 +84,30 @@ func (h *Handler) SubscribeAnalysis(req *pb.SubscribeAnalysisRequest, stream pb.
 	defer unsubscribe()
 
 	// Immediate snapshot so a UI (re)connecting mid-job sees current state.
+	log.Printf("[handler] SubscribeAnalysis → send snapshot status=%s progress=%d%%", job.Status, job.ProgressPercent)
 	if err := stream.Send(toEvent(job)); err != nil {
+		log.Printf("[handler] SubscribeAnalysis stream.Send (snapshot) error: %v", err)
 		return err
 	}
 	if job.Status.IsTerminal() {
+		log.Printf("[handler] SubscribeAnalysis job already terminal (%s) — closing stream", job.Status)
 		return nil
 	}
+	eventCount := 0
 	for {
 		select {
 		case <-stream.Context().Done():
+			log.Printf("[handler] SubscribeAnalysis client disconnected after %d events: %v", eventCount, stream.Context().Err())
 			return stream.Context().Err()
 		case update := <-ch:
+			eventCount++
+			log.Printf("[handler] SubscribeAnalysis → send event #%d status=%s progress=%d%%", eventCount, update.Status, update.ProgressPercent)
 			if err := stream.Send(toEvent(update)); err != nil {
+				log.Printf("[handler] SubscribeAnalysis stream.Send error: %v", err)
 				return err
 			}
 			if update.Status.IsTerminal() {
+				log.Printf("[handler] SubscribeAnalysis terminal (%s) — closing stream after %d events", update.Status, eventCount)
 				return nil
 			}
 		}
