@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Command show-flow-data is a standalone program that uses the stories-service
 // library to run the "show_flow_data" workflow action against PostgreSQL and
 // print the JSON response. It mirrors TestProcessShowFlowDataCtgFunction in

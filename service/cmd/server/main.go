@@ -38,9 +38,15 @@ func main() {
 		log.Fatalf("fail interrupted jobs: %v", err)
 	}
 
-	svc := service.New(store,
-		service.SimulatedAnalyzer{Duration: cfg.AnalysisDuration},
-		cfg.JobTimeout)
+	var analyzer service.Analyzer
+	if cfg.ModelAPIKey != "" {
+		log.Printf("using Muse API analyzer (location: %s)", cfg.AnalysisLocation)
+		analyzer = service.MuseAnalyzer{APIKey: cfg.ModelAPIKey, Location: cfg.AnalysisLocation}
+	} else {
+		log.Printf("MODEL_API_KEY not set — using simulated analyzer (duration %s)", cfg.AnalysisDuration)
+		analyzer = service.SimulatedAnalyzer{Duration: cfg.AnalysisDuration}
+	}
+	svc := service.New(store, analyzer, cfg.JobTimeout)
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {

@@ -15,6 +15,10 @@ type Config struct {
 	// override with ANALYSIS_DURATION (Go duration, e.g. "30s") for demos/tests.
 	AnalysisDuration time.Duration
 	JobTimeout       time.Duration
+	// MODEL_API_KEY enables the real Muse API pipeline; leave empty to use
+	// the simulated analyzer (useful for development without an API key).
+	ModelAPIKey      string
+	AnalysisLocation string // city or country for geocoding, default "Paris"
 }
 
 func Load() (*Config, error) {
@@ -37,6 +41,8 @@ func Load() (*Config, error) {
 			getEnv("DB_PASS", "stories")),
 		AnalysisDuration: duration,
 		JobTimeout:       timeout,
+		ModelAPIKey:      getEnv("MODEL_API_KEY", ""),
+		AnalysisLocation: getEnv("ANALYSIS_LOCATION", "Paris"),
 	}, nil
 }
 

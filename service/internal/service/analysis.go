@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"tratrack/service/commands"
 	"tratrack/service/models"
 )
 
@@ -168,4 +169,48 @@ func (s *Service) LastResult(ctx context.Context) (*models.Job, error) {
 // Subscribe registers for push updates; caller also gets future events on ch.
 func (s *Service) Subscribe(jobID string) (chan *models.Job, func()) {
 	return s.broker.Subscribe(jobID)
+}
+
+// MuseAnalyzer runs the real 4-step Muse API pipeline:
+//  1. Places  – extract places from the video
+//  2. Tips    – add tips and tags per place
+//  3. Duration – add estimated visit time per place
+//  4. Location – add geographic coordinates per place
+//
+// Progress is reported at 25 % increments after each step completes.
+type MuseAnalyzer struct {
+	APIKey   string
+	Location string // city or country used to geocode places; defaults to "Paris"
+}
+
+func (a MuseAnalyzer) Analyze(ctx context.Context, idFile string, progress func(int)) (string, error) {
+	result, err := commands.Places(ctx, a.APIKey, idFile)
+	if err != nil {
+		return "", fmt.Errorf("step 1 (places): %w", err)
+	}
+	progress(25)
+
+	result, err = commands.Tips(ctx, a.APIKey, idFile, result)
+	if err != nil {
+		return "", fmt.Errorf("step 2 (tips): %w", err)
+	}
+	progress(50)
+
+	result, err = commands.Duration(ctx, a.APIKey, idFile, result)
+	if err != nil {
+		return "", fmt.Errorf("step 3 (duration): %w", err)
+	}
+	progress(75)
+
+	loc := a.Location
+	if loc == "" {
+		loc = "Paris"
+	}
+	result, err = commands.Location(ctx, a.APIKey, result, loc)
+	if err != nil {
+		return "", fmt.Errorf("step 4 (location): %w", err)
+	}
+	progress(100)
+
+	return result, nil
 }
