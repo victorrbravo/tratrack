@@ -183,6 +183,11 @@ func (s *Service) Subscribe(jobID string) (chan *models.Job, func()) {
 	return s.broker.Subscribe(jobID)
 }
 
+// CallStories passes an order YAML string to stories-service input.ProcessInput.
+func (s *Service) CallStories(ctx context.Context, order string) (string, error) {
+	return commands.CallStories(ctx, order)
+}
+
 // MuseAnalyzer runs the real 4-step Muse API pipeline:
 //  1. Places  – extract places from the video
 //  2. Tips    – add tips and tags per place

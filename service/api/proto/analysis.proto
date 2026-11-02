@@ -20,6 +20,8 @@ service AnalysisService {
   // then one event per status/progress change, ending with a terminal
   // (COMPLETED or FAILED) event, after which the stream closes.
   rpc SubscribeAnalysis(SubscribeAnalysisRequest) returns (stream AnalysisEvent);
+  // Passes a YAML order string directly to stories-service input.ProcessInput.
+  rpc CallStories(CallStoriesRequest) returns (CallStoriesResponse);
 }
 
 enum JobStatus {
@@ -76,4 +78,12 @@ message AnalysisEvent {
   string error = 5;
   string result_json = 6; // set only on the terminal COMPLETED event
   string updated_at = 7;  // RFC 3339
+}
+
+message CallStoriesRequest {
+  string order = 1; // YAML order string passed to input.ProcessInput
+}
+
+message CallStoriesResponse {
+  string result = 1; // string returned by input.ProcessInput
 }

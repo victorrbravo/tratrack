@@ -564,6 +564,94 @@ func (x *AnalysisEvent) GetUpdatedAt() string {
 	return ""
 }
 
+type CallStoriesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Order         string                 `protobuf:"bytes,1,opt,name=order,proto3" json:"order,omitempty"` // YAML order string passed to input.ProcessInput
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CallStoriesRequest) Reset() {
+	*x = CallStoriesRequest{}
+	mi := &file_analysis_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CallStoriesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CallStoriesRequest) ProtoMessage() {}
+
+func (x *CallStoriesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_analysis_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CallStoriesRequest.ProtoReflect.Descriptor instead.
+func (*CallStoriesRequest) Descriptor() ([]byte, []int) {
+	return file_analysis_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *CallStoriesRequest) GetOrder() string {
+	if x != nil {
+		return x.Order
+	}
+	return ""
+}
+
+type CallStoriesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Result        string                 `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"` // string returned by input.ProcessInput
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CallStoriesResponse) Reset() {
+	*x = CallStoriesResponse{}
+	mi := &file_analysis_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CallStoriesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CallStoriesResponse) ProtoMessage() {}
+
+func (x *CallStoriesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_analysis_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CallStoriesResponse.ProtoReflect.Descriptor instead.
+func (*CallStoriesResponse) Descriptor() ([]byte, []int) {
+	return file_analysis_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *CallStoriesResponse) GetResult() string {
+	if x != nil {
+		return x.Result
+	}
+	return ""
+}
+
 var File_analysis_proto protoreflect.FileDescriptor
 
 const file_analysis_proto_rawDesc = "" +
@@ -608,20 +696,25 @@ const file_analysis_proto_rawDesc = "" +
 	"\vresult_json\x18\x06 \x01(\tR\n" +
 	"resultJson\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\tR\tupdatedAt*\\\n" +
+	"updated_at\x18\a \x01(\tR\tupdatedAt\"*\n" +
+	"\x12CallStoriesRequest\x12\x14\n" +
+	"\x05order\x18\x01 \x01(\tR\x05order\"-\n" +
+	"\x13CallStoriesResponse\x12\x16\n" +
+	"\x06result\x18\x01 \x01(\tR\x06result*\\\n" +
 	"\tJobStatus\x12\x1a\n" +
 	"\x16JOB_STATUS_UNSPECIFIED\x10\x00\x12\v\n" +
 	"\aPENDING\x10\x01\x12\v\n" +
 	"\aRUNNING\x10\x02\x12\r\n" +
 	"\tCOMPLETED\x10\x03\x12\n" +
 	"\n" +
-	"\x06FAILED\x10\x042\xb5\x03\n" +
+	"\x06FAILED\x10\x042\x99\x04\n" +
 	"\x0fAnalysisService\x12h\n" +
 	"\rStartAnalysis\x12*.tratrack.analysis.v1.StartAnalysisRequest\x1a+.tratrack.analysis.v1.StartAnalysisResponse\x12k\n" +
 	"\x0eStatusAnalysis\x12+.tratrack.analysis.v1.StatusAnalysisRequest\x1a,.tratrack.analysis.v1.StatusAnalysisResponse\x12_\n" +
 	"\n" +
 	"LastResult\x12'.tratrack.analysis.v1.LastResultRequest\x1a(.tratrack.analysis.v1.LastResultResponse\x12j\n" +
-	"\x11SubscribeAnalysis\x12..tratrack.analysis.v1.SubscribeAnalysisRequest\x1a#.tratrack.analysis.v1.AnalysisEvent0\x01B\x1cZ\x1atratrack/service/api/pb;pbb\x06proto3"
+	"\x11SubscribeAnalysis\x12..tratrack.analysis.v1.SubscribeAnalysisRequest\x1a#.tratrack.analysis.v1.AnalysisEvent0\x01\x12b\n" +
+	"\vCallStories\x12(.tratrack.analysis.v1.CallStoriesRequest\x1a).tratrack.analysis.v1.CallStoriesResponseB\x1cZ\x1atratrack/service/api/pb;pbb\x06proto3"
 
 var (
 	file_analysis_proto_rawDescOnce sync.Once
@@ -636,7 +729,7 @@ func file_analysis_proto_rawDescGZIP() []byte {
 }
 
 var file_analysis_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_analysis_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_analysis_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_analysis_proto_goTypes = []any{
 	(JobStatus)(0),                   // 0: tratrack.analysis.v1.JobStatus
 	(*StartAnalysisRequest)(nil),     // 1: tratrack.analysis.v1.StartAnalysisRequest
@@ -647,25 +740,29 @@ var file_analysis_proto_goTypes = []any{
 	(*LastResultResponse)(nil),       // 6: tratrack.analysis.v1.LastResultResponse
 	(*SubscribeAnalysisRequest)(nil), // 7: tratrack.analysis.v1.SubscribeAnalysisRequest
 	(*AnalysisEvent)(nil),            // 8: tratrack.analysis.v1.AnalysisEvent
+	(*CallStoriesRequest)(nil),       // 9: tratrack.analysis.v1.CallStoriesRequest
+	(*CallStoriesResponse)(nil),      // 10: tratrack.analysis.v1.CallStoriesResponse
 }
 var file_analysis_proto_depIdxs = []int32{
-	0, // 0: tratrack.analysis.v1.StartAnalysisResponse.status:type_name -> tratrack.analysis.v1.JobStatus
-	0, // 1: tratrack.analysis.v1.StatusAnalysisResponse.status:type_name -> tratrack.analysis.v1.JobStatus
-	0, // 2: tratrack.analysis.v1.LastResultResponse.status:type_name -> tratrack.analysis.v1.JobStatus
-	0, // 3: tratrack.analysis.v1.AnalysisEvent.status:type_name -> tratrack.analysis.v1.JobStatus
-	1, // 4: tratrack.analysis.v1.AnalysisService.StartAnalysis:input_type -> tratrack.analysis.v1.StartAnalysisRequest
-	3, // 5: tratrack.analysis.v1.AnalysisService.StatusAnalysis:input_type -> tratrack.analysis.v1.StatusAnalysisRequest
-	5, // 6: tratrack.analysis.v1.AnalysisService.LastResult:input_type -> tratrack.analysis.v1.LastResultRequest
-	7, // 7: tratrack.analysis.v1.AnalysisService.SubscribeAnalysis:input_type -> tratrack.analysis.v1.SubscribeAnalysisRequest
-	2, // 8: tratrack.analysis.v1.AnalysisService.StartAnalysis:output_type -> tratrack.analysis.v1.StartAnalysisResponse
-	4, // 9: tratrack.analysis.v1.AnalysisService.StatusAnalysis:output_type -> tratrack.analysis.v1.StatusAnalysisResponse
-	6, // 10: tratrack.analysis.v1.AnalysisService.LastResult:output_type -> tratrack.analysis.v1.LastResultResponse
-	8, // 11: tratrack.analysis.v1.AnalysisService.SubscribeAnalysis:output_type -> tratrack.analysis.v1.AnalysisEvent
-	8, // [8:12] is the sub-list for method output_type
-	4, // [4:8] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0,  // 0: tratrack.analysis.v1.StartAnalysisResponse.status:type_name -> tratrack.analysis.v1.JobStatus
+	0,  // 1: tratrack.analysis.v1.StatusAnalysisResponse.status:type_name -> tratrack.analysis.v1.JobStatus
+	0,  // 2: tratrack.analysis.v1.LastResultResponse.status:type_name -> tratrack.analysis.v1.JobStatus
+	0,  // 3: tratrack.analysis.v1.AnalysisEvent.status:type_name -> tratrack.analysis.v1.JobStatus
+	1,  // 4: tratrack.analysis.v1.AnalysisService.StartAnalysis:input_type -> tratrack.analysis.v1.StartAnalysisRequest
+	3,  // 5: tratrack.analysis.v1.AnalysisService.StatusAnalysis:input_type -> tratrack.analysis.v1.StatusAnalysisRequest
+	5,  // 6: tratrack.analysis.v1.AnalysisService.LastResult:input_type -> tratrack.analysis.v1.LastResultRequest
+	7,  // 7: tratrack.analysis.v1.AnalysisService.SubscribeAnalysis:input_type -> tratrack.analysis.v1.SubscribeAnalysisRequest
+	9,  // 8: tratrack.analysis.v1.AnalysisService.CallStories:input_type -> tratrack.analysis.v1.CallStoriesRequest
+	2,  // 9: tratrack.analysis.v1.AnalysisService.StartAnalysis:output_type -> tratrack.analysis.v1.StartAnalysisResponse
+	4,  // 10: tratrack.analysis.v1.AnalysisService.StatusAnalysis:output_type -> tratrack.analysis.v1.StatusAnalysisResponse
+	6,  // 11: tratrack.analysis.v1.AnalysisService.LastResult:output_type -> tratrack.analysis.v1.LastResultResponse
+	8,  // 12: tratrack.analysis.v1.AnalysisService.SubscribeAnalysis:output_type -> tratrack.analysis.v1.AnalysisEvent
+	10, // 13: tratrack.analysis.v1.AnalysisService.CallStories:output_type -> tratrack.analysis.v1.CallStoriesResponse
+	9,  // [9:14] is the sub-list for method output_type
+	4,  // [4:9] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_analysis_proto_init() }
@@ -679,7 +776,7 @@ func file_analysis_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_analysis_proto_rawDesc), len(file_analysis_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

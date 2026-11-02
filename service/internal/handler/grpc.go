@@ -114,6 +114,20 @@ func (h *Handler) SubscribeAnalysis(req *pb.SubscribeAnalysisRequest, stream pb.
 	}
 }
 
+func (h *Handler) CallStories(ctx context.Context, req *pb.CallStoriesRequest) (*pb.CallStoriesResponse, error) {
+	log.Printf("[handler] CallStories order=%d bytes", len(req.GetOrder()))
+	if req.GetOrder() == "" {
+		return nil, status.Error(codes.InvalidArgument, "order is required")
+	}
+	result, err := h.svc.CallStories(ctx, req.GetOrder())
+	if err != nil {
+		log.Printf("[handler] CallStories error: %v", err)
+		return nil, status.Errorf(codes.Internal, "call stories: %v", err)
+	}
+	log.Printf("[handler] CallStories → result: %s", result)
+	return &pb.CallStoriesResponse{Result: result}, nil
+}
+
 func (h *Handler) lookup(ctx context.Context, jobID string) (*models.Job, error) {
 	if strings.TrimSpace(jobID) == "" {
 		return nil, status.Error(codes.InvalidArgument, "job_id is required")

@@ -23,6 +23,7 @@ const (
 	AnalysisService_StatusAnalysis_FullMethodName    = "/tratrack.analysis.v1.AnalysisService/StatusAnalysis"
 	AnalysisService_LastResult_FullMethodName        = "/tratrack.analysis.v1.AnalysisService/LastResult"
 	AnalysisService_SubscribeAnalysis_FullMethodName = "/tratrack.analysis.v1.AnalysisService/SubscribeAnalysis"
+	AnalysisService_CallStories_FullMethodName       = "/tratrack.analysis.v1.AnalysisService/CallStories"
 )
 
 // AnalysisServiceClient is the client API for AnalysisService service.
@@ -45,6 +46,8 @@ type AnalysisServiceClient interface {
 	// then one event per status/progress change, ending with a terminal
 	// (COMPLETED or FAILED) event, after which the stream closes.
 	SubscribeAnalysis(ctx context.Context, in *SubscribeAnalysisRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AnalysisEvent], error)
+	// Passes a YAML order string directly to stories-service input.ProcessInput.
+	CallStories(ctx context.Context, in *CallStoriesRequest, opts ...grpc.CallOption) (*CallStoriesResponse, error)
 }
 
 type analysisServiceClient struct {
@@ -104,6 +107,16 @@ func (c *analysisServiceClient) SubscribeAnalysis(ctx context.Context, in *Subsc
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type AnalysisService_SubscribeAnalysisClient = grpc.ServerStreamingClient[AnalysisEvent]
 
+func (c *analysisServiceClient) CallStories(ctx context.Context, in *CallStoriesRequest, opts ...grpc.CallOption) (*CallStoriesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CallStoriesResponse)
+	err := c.cc.Invoke(ctx, AnalysisService_CallStories_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AnalysisServiceServer is the server API for AnalysisService service.
 // All implementations must embed UnimplementedAnalysisServiceServer
 // for forward compatibility.
@@ -124,6 +137,8 @@ type AnalysisServiceServer interface {
 	// then one event per status/progress change, ending with a terminal
 	// (COMPLETED or FAILED) event, after which the stream closes.
 	SubscribeAnalysis(*SubscribeAnalysisRequest, grpc.ServerStreamingServer[AnalysisEvent]) error
+	// Passes a YAML order string directly to stories-service input.ProcessInput.
+	CallStories(context.Context, *CallStoriesRequest) (*CallStoriesResponse, error)
 	mustEmbedUnimplementedAnalysisServiceServer()
 }
 
@@ -145,6 +160,9 @@ func (UnimplementedAnalysisServiceServer) LastResult(context.Context, *LastResul
 }
 func (UnimplementedAnalysisServiceServer) SubscribeAnalysis(*SubscribeAnalysisRequest, grpc.ServerStreamingServer[AnalysisEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeAnalysis not implemented")
+}
+func (UnimplementedAnalysisServiceServer) CallStories(context.Context, *CallStoriesRequest) (*CallStoriesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CallStories not implemented")
 }
 func (UnimplementedAnalysisServiceServer) mustEmbedUnimplementedAnalysisServiceServer() {}
 func (UnimplementedAnalysisServiceServer) testEmbeddedByValue()                         {}
@@ -232,6 +250,24 @@ func _AnalysisService_SubscribeAnalysis_Handler(srv interface{}, stream grpc.Ser
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type AnalysisService_SubscribeAnalysisServer = grpc.ServerStreamingServer[AnalysisEvent]
 
+func _AnalysisService_CallStories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CallStoriesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AnalysisServiceServer).CallStories(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AnalysisService_CallStories_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AnalysisServiceServer).CallStories(ctx, req.(*CallStoriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AnalysisService_ServiceDesc is the grpc.ServiceDesc for AnalysisService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -250,6 +286,10 @@ var AnalysisService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "LastResult",
 			Handler:    _AnalysisService_LastResult_Handler,
+		},
+		{
+			MethodName: "CallStories",
+			Handler:    _AnalysisService_CallStories_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

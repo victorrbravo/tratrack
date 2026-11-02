@@ -56,33 +56,17 @@ func StorePlaces(ctx context.Context, inputJSON string) (string, error) {
 		analysis.Places = []Place{}
 	}
 
-	port, err := strconv.Atoi(envOr("DB_PORT", "5432"))
-	if err != nil {
-		return "", fmt.Errorf("invalid DB_PORT: %w", err)
-	}
+	contentType := envOr("CONTENT_TYPE", "Senda")
+	email := envOr("EMAIL", "")
 	userID, err := strconv.Atoi(envOr("USER_ID", "2"))
 	if err != nil || userID <= 0 {
 		return "", fmt.Errorf("invalid USER_ID: %q", envOr("USER_ID", "2"))
 	}
-	email := envOr("EMAIL", "")
-	contentType := envOr("CONTENT_TYPE", "Senda")
 
-	cfg := database.DatabaseConfig{
-		Host:     envOr("DB_HOST", "localhost"),
-		Name:     envOr("DB_NAME", "stories"),
-		Port:     port,
-		User:     envOr("DB_USER", "stories"),
-		Password: envOr("DB_PASS", "stories"),
+	query, storyCtx, err := storiesConnect(ctx)
+	if err != nil {
+		return "", err
 	}
-	var pgQuery database.PostgresQuery
-	pgQuery.Initialize(&cfg)
-	if err := pgQuery.Connect(); err != nil {
-		return "", fmt.Errorf("database connection: %w", err)
-	}
-	query := pgQuery.NewQuery()
-
-	storyCtx := context.WithValue(ctx, "email", email)
-	storyCtx = context.WithValue(storyCtx, "user_id", userID)
 
 	log.Printf("[storeplaces] creating story %q (user=%d, email=%s, contentType=%s)", analysis.Name, userID, email, contentType)
 	ticket, err := storeCreateStory(storyCtx, &query, analysis, email, contentType, userID)
@@ -182,6 +166,60 @@ func storeEscapeAll(values []string) []string {
 		out[i] = storeEscape(v)
 	}
 	return out
+}
+
+// CallStories passes an order YAML string directly to input.ProcessInput and
+// returns the result string. DB credentials are read from the same env vars
+// used by StorePlaces (DB_HOST/PORT/NAME/USER/PASS, USER_ID, EMAIL).
+func CallStories(ctx context.Context, order string) (string, error) {
+	if order == "" {
+		return "", fmt.Errorf("order is required")
+	}
+
+	query, storyCtx, err := storiesConnect(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	log.Printf("[callstories] calling ProcessInput (order %d bytes)", len(order))
+	result, err := input.ProcessInput(storyCtx, []byte(order), &query)
+	if err != nil {
+		log.Printf("[callstories] ✗ ProcessInput error: %v", err)
+		return "", fmt.Errorf("ProcessInput: %w", err)
+	}
+	log.Printf("[callstories] ✓ result: %s", result)
+	return result, nil
+}
+
+// storiesConnect opens a database connection using the DB_* env vars and
+// returns a query handle and a context enriched with EMAIL and USER_ID.
+func storiesConnect(ctx context.Context) (database.IQuery, context.Context, error) {
+	port, err := strconv.Atoi(envOr("DB_PORT", "5432"))
+	if err != nil {
+		return nil, ctx, fmt.Errorf("invalid DB_PORT: %w", err)
+	}
+	userID, err := strconv.Atoi(envOr("USER_ID", "2"))
+	if err != nil || userID <= 0 {
+		return nil, ctx, fmt.Errorf("invalid USER_ID: %q", envOr("USER_ID", "2"))
+	}
+	email := envOr("EMAIL", "")
+
+	cfg := database.DatabaseConfig{
+		Host:     envOr("DB_HOST", "localhost"),
+		Name:     envOr("DB_NAME", "stories"),
+		Port:     port,
+		User:     envOr("DB_USER", "stories"),
+		Password: envOr("DB_PASS", "stories"),
+	}
+	var pgQuery database.PostgresQuery
+	pgQuery.Initialize(&cfg)
+	if err := pgQuery.Connect(); err != nil {
+		return nil, ctx, fmt.Errorf("database connection: %w", err)
+	}
+	query := pgQuery.NewQuery()
+	storyCtx := context.WithValue(ctx, "email", email)
+	storyCtx = context.WithValue(storyCtx, "user_id", userID)
+	return query, storyCtx, nil
 }
 
 func envOr(name, fallback string) string {
