@@ -11,7 +11,10 @@ struct ContentView: View {
                     Text(status)
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                    if let progress = model.analysisProgress {
+                    if model.isUploading {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else if let progress = model.analysisProgress {
                         ProgressView(value: Double(progress), total: 100)
                             .frame(width: 120)
                     }
@@ -43,10 +46,25 @@ struct ContentView: View {
         .sheet(isPresented: $model.showAnalysisDialog) {
             AnalysisDialogView(model: model)
         }
+        .sheet(isPresented: $model.showSettings) {
+            SettingsView(model: model)
+        }
     }
 
     private var topBar: some View {
         HStack(spacing: 10) {
+            // Upload video → Muse Files API → populates fileIDInput
+            Button(action: model.uploadVideo) {
+                if model.isUploading {
+                    Label("Uploading…", systemImage: "arrow.up.circle")
+                } else {
+                    Label("Upload Video", systemImage: "arrow.up.circle")
+                }
+            }
+            .disabled(model.isUploading)
+            .help(model.isUploading ? "Upload in progress…" : "Pick an .mp4 and upload it to Muse")
+
+            // Shows the current file ID; tap to change it manually
             Button(action: model.openAnalysisDialog) {
                 Label(model.fileIDLabel, systemImage: "film")
                     .lineLimit(1)
@@ -76,6 +94,11 @@ struct ContentView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(!model.canRun)
+
+            Button(action: model.openSettings) {
+                Image(systemName: "gear")
+            }
+            .help("Settings — Muse API key and preferences")
         }
         .controlSize(.large)
         .padding(12)
@@ -115,6 +138,9 @@ private struct AnalysisDialogView: View {
                     .textFieldStyle(.roundedBorder)
                     .frame(minWidth: 360)
                     .onSubmit { startIfReady() }
+                Text("Upload a video first to obtain a file ID automatically.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
 
             if let status = model.status {

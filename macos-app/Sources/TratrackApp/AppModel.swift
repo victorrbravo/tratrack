@@ -9,12 +9,16 @@ final class AppModel {
     var workflowFileName: String?
     var fileIDInput = ""
     var showAnalysisDialog = false
+    var showSettings = false
     var query = ""
     var status: String?
     var currentJobID: String?
     var analysisProgress: Int?
     var lastResultJSON: String?
+    var isUploading = false
+    var apiKey: String = UserDefaults.standard.string(forKey: "modelAPIKey") ?? ""
     private var analysisTask: Task<Void, Never>?
+    private var uploadTask: Task<Void, Never>?
 
     init() {
         // `swift run TratrackApp path/to/workflow.json` opens that file.
@@ -39,18 +43,53 @@ final class AppModel {
     }
 
     var canRun: Bool {
-        !fileIDInput.trimmingCharacters(in: .whitespaces).isEmpty ||
-        !query.trimmingCharacters(in: .whitespaces).isEmpty
+        !isUploading &&
+        (!fileIDInput.trimmingCharacters(in: .whitespaces).isEmpty ||
+         !query.trimmingCharacters(in: .whitespaces).isEmpty)
     }
 
-    func openAnalysisDialog() {
-        showAnalysisDialog = true
-    }
+    func openAnalysisDialog() { showAnalysisDialog = true }
+    func openSettings() { showSettings = true }
 
     func loadJSON() {
         let examples = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("examples")
         if let url = chooseFile(of: .json, in: examples) {
             loadWorkflow(from: url)
+        }
+    }
+
+    /// Picks an mp4, uploads it to the Muse Files API, and stores the returned file_id
+    /// in fileIDInput so the Analyze/Run button becomes enabled.
+    func uploadVideo() {
+        guard !apiKey.isEmpty else {
+            status = "Set your Muse API key in Settings first."
+            showSettings = true
+            return
+        }
+        guard let url = chooseFile(of: .mpeg4Movie) else { return }
+        guard url.pathExtension.lowercased() == "mp4" else {
+            status = "Only .mp4 files are accepted (got .\(url.pathExtension))."
+            return
+        }
+
+        uploadTask?.cancel()
+        isUploading = true
+        fileIDInput = ""
+        status = "Uploading \(url.lastPathComponent)…"
+
+        let apiKeyCopy = apiKey
+        uploadTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let fileID = try await UploadClient(apiKey: apiKeyCopy).upload(videoURL: url)
+                self.fileIDInput = fileID
+                self.isUploading = false
+                self.status = "Upload complete — ready to analyze."
+            } catch {
+                print("[AppModel] uploadVideo error: \(error)")
+                self.isUploading = false
+                self.status = "Upload failed: \(error.localizedDescription)"
+            }
         }
     }
 

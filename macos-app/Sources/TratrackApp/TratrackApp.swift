@@ -18,10 +18,15 @@ struct TratrackApp: App {
         }
         .commands {
             CommandMenu("Actions") {
+                Button("Upload Video…", action: model.uploadVideo)
+                    .keyboardShortcut("u", modifiers: [.command])
                 Button("Analyze…", action: model.openAnalysisDialog)
                     .keyboardShortcut("o", modifiers: [.command, .shift])
                 Button("Load JSON…", action: model.loadJSON)
                     .keyboardShortcut("o")
+                Divider()
+                Button("Settings…", action: model.openSettings)
+                    .keyboardShortcut(",")
             }
         }
     }
