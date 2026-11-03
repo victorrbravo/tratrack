@@ -11,20 +11,6 @@ struct WorkflowCanvas: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text(kicker.uppercased())
-                    .font(.system(size: 13, weight: .medium))
-                    .tracking(3)
-                    .foregroundStyle(Paper.muted)
-                Text(title)
-                    .font(.system(size: 56, weight: .bold))
-                    .tracking(-1.5)
-                    .foregroundStyle(Paper.ink)
-                    .padding(.top, 4)
-                Rectangle()
-                    .fill(Paper.ink)
-                    .frame(width: 48, height: 3)
-                    .padding(.top, 14)
-
                 VStack(spacing: 0) {
                     ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
                         if index > 0 {
@@ -47,7 +33,6 @@ struct WorkflowCanvas: View {
                         }
                     }
                 }
-                .padding(.top, 48)
 
                 Text(footer)
                     .font(.system(size: 15))

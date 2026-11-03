@@ -46,9 +46,9 @@ final class AppModel {
         }
     }
 
-    /// The workflow's name, or the file name when the workflow has none.
+    /// The workflow's name, or the file name when the workflow has none or uses the generic "Stories" default.
     var title: String {
-        if let name = workflow?.name, !name.isEmpty { return name }
+        if let name = workflow?.name, !name.isEmpty, name != "Stories" { return name }
         return workflowFileName ?? "Untitled"
     }
 
