@@ -35,6 +35,7 @@ type flowStepOrder struct {
 	Position  string   `yaml:"position,omitempty"`
 	Tips      []string `yaml:"tips,omitempty"`
 	Tags      []string `yaml:"tags,omitempty"`
+	Videos    []string `yaml:"videos,omitempty"`
 }
 
 type storePlacesResult struct {
@@ -143,6 +144,7 @@ func storeAddFlowStep(ctx context.Context, query *database.IQuery, ticket int, p
 		Position:  place.Location,
 		Tips:      storeEscapeAll(place.Tips),
 		Tags:      storeEscapeAll(place.Tags),
+		Videos:    []string{fmt.Sprintf("%g %g", place.StartSeconds, place.EndSeconds)},
 	})
 	if err != nil {
 		return err
