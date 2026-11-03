@@ -121,10 +121,23 @@ struct StepCard: View {
                         .foregroundStyle(Paper.ink.opacity(0.7))
                         .padding(.top, 2)
                 }
-                if !step.tags.isEmpty {
-                    HStack {
+                let hasTipsButton = step.tipsIdField != nil
+                let hasTags = !step.tags.isEmpty
+                if hasTipsButton || hasTags {
+                    HStack(spacing: 10) {
+                        if hasTipsButton {
+                            Button { onTips?() } label: {
+                                Image(systemName: "lightbulb.fill")
+                                    .foregroundStyle(.yellow)
+                                    .font(.system(size: 16))
+                            }
+                            .buttonStyle(.plain)
+                            .help("Show tips")
+                        }
                         Spacer(minLength: 0)
-                        TagsPopoverButton(tags: step.tags)
+                        if hasTags {
+                            TagsPopoverButton(tags: step.tags)
+                        }
                     }
                     .padding(.top, 10)
                 }
@@ -143,13 +156,6 @@ struct StepCard: View {
         .shadow(color: .black.opacity(0.14), radius: 1.5, y: -1)
         .rotationEffect(.degrees(layout.tilt))
         .contextMenu {
-            if !step.tips.isEmpty {
-                Button {
-                    onTips?()
-                } label: {
-                    Label("Tips", systemImage: "lightbulb")
-                }
-            }
             if let seg = step.videoSegment {
                 Button("Video section \(formatSec(seg.start)) \(formatSec(seg.end))") {
                     onVideoSection?()

@@ -69,11 +69,41 @@ final class AppModel {
     func openSettings() { showSettings = true }
 
     func openTips(for step: Step) {
-        guard !step.tips.isEmpty else {
+        guard let tipsId = step.tipsIdField else {
             status = "Step \"\(step.name)\" has no tips."
             return
         }
-        activeTips = TipsState(stepName: step.name, tips: step.tips)
+        let order = "action: show_step_tips\ntips_id: \(tipsId)\n"
+        status = "Loading tips for \(step.name)…"
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let json = try await AnalysisServiceClient().callStories(order: order)
+                let tips = try Self.parseTips(from: json)
+                self.activeTips = TipsState(stepName: step.name, tips: tips)
+                self.status = nil
+            } catch {
+                self.status = "Failed to load tips: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private static func parseTips(from json: String) throws -> [String] {
+        struct TipItem: Decodable { let tip: String }
+        struct TipsWrapper: Decodable { let tips: [TipItem]? }
+
+        guard var data = json.data(using: .utf8) else { throw CocoaError(.fileReadUnknown) }
+        if let start = data.firstIndex(where: { $0 == UInt8(ascii: "{") || $0 == UInt8(ascii: "[") }),
+           start > data.startIndex { data = Data(data[start...]) }
+
+        let decoder = JSONDecoder()
+        if let wrapper = try? decoder.decode(TipsWrapper.self, from: data), let items = wrapper.tips {
+            return items.map(\.tip)
+        }
+        if let items = try? decoder.decode([TipItem].self, from: data) {
+            return items.map(\.tip)
+        }
+        throw CocoaError(.fileReadUnknown)
     }
 
     func openVideoSegment(for step: Step) {

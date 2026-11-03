@@ -88,6 +88,7 @@ struct WorkflowTask: Decodable {
         var summary: String?
         var tags: [String]?
         var tips: [String]?
+        var tipsIdField: Int?
         var videos: [String]?
         var updateAtDiff: String?   // "HH:MM:SS" travel time to this step
         var distanceDiff: Double?   // metres to this step
@@ -121,6 +122,7 @@ struct Step: Identifiable {
     var videoCount: Int { task.data?.videos?.count ?? 0 }
     var tags: [String] { task.data?.tags ?? [] }
     var tips: [String] { task.data?.tips ?? [] }
+    var tipsIdField: Int? { task.data?.tipsIdField }
     var dayTotal: WorkflowTask.DayTotal? { task.transition?.wrapped }
 
     /// Humanised travel time from `update_at_diff` ("HH:MM:SS"), e.g. "2 hr 30 min".
