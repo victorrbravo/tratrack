@@ -106,6 +106,22 @@ final class AppModel {
         throw CocoaError(.fileReadUnknown)
     }
 
+    func openLocation(for step: Step, inGoogle: Bool = false) {
+        guard let coord = step.coordinate else {
+            status = "Step \"\(step.name)\" has no location data."
+            return
+        }
+        let name = step.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? step.name
+        let url: URL?
+        if inGoogle {
+            url = URL(string: "https://maps.google.com/maps?q=\(coord.lat),\(coord.lon)(\(name))")
+        } else {
+            url = URL(string: "maps://?ll=\(coord.lat),\(coord.lon)&q=\(name)")
+        }
+        guard let url else { return }
+        NSWorkspace.shared.open(url)
+    }
+
     func openVideoSegment(for step: Step) {
         guard let url = localVideoURL else {
             status = "No local video — click Upload Video and choose Local Only first."

@@ -7,6 +7,7 @@ struct WorkflowCanvas: View {
     let steps: [Step]
     var onStepDoubleClick: ((Step) -> Void)?
     var onStepTips: ((Step) -> Void)?
+    var onStepLocation: ((Step, Bool) -> Void)?
 
     var body: some View {
         ScrollView {
@@ -21,7 +22,8 @@ struct WorkflowCanvas: View {
                             step: step,
                             layout: layout,
                             onVideoSection: { onStepDoubleClick?(step) },
-                            onTips: { onStepTips?(step) }
+                            onTips: { onStepTips?(step) },
+                            onLocation: { inGoogle in onStepLocation?(step, inGoogle) }
                         )
                             .frame(maxWidth: 560)
                             .padding(.leading, layout.inset)
@@ -66,6 +68,7 @@ struct StepCard: View {
     let layout: NoteLayout
     var onVideoSection: (() -> Void)?
     var onTips: (() -> Void)?
+    var onLocation: ((_ inGoogle: Bool) -> Void)?
 
     var body: some View {
         HStack(alignment: .top, spacing: 26) {
@@ -107,9 +110,10 @@ struct StepCard: View {
                         .padding(.top, 2)
                 }
                 let hasTipsButton = step.tipsIdField != nil
+                let hasLocation = step.coordinate != nil
                 let hasTags = !step.tags.isEmpty
-                if hasTipsButton || hasTags {
-                    HStack(spacing: 10) {
+                if hasTipsButton || hasLocation || hasTags {
+                    HStack(spacing: 12) {
                         if hasTipsButton {
                             Button { onTips?() } label: {
                                 Image(systemName: "lightbulb.fill")
@@ -118,6 +122,27 @@ struct StepCard: View {
                             }
                             .buttonStyle(.plain)
                             .help("Show tips")
+                        }
+                        if hasLocation {
+                            Menu {
+                                Button {
+                                    onLocation?(false)
+                                } label: {
+                                    Label("Open in Apple Maps", systemImage: "map")
+                                }
+                                Button {
+                                    onLocation?(true)
+                                } label: {
+                                    Label("Open in Google Maps", systemImage: "globe")
+                                }
+                            } label: {
+                                Image(systemName: "location.fill")
+                                    .foregroundStyle(.blue)
+                                    .font(.system(size: 16))
+                            }
+                            .menuStyle(.borderlessButton)
+                            .fixedSize()
+                            .help("Open location in Maps")
                         }
                         Spacer(minLength: 0)
                         if hasTags {

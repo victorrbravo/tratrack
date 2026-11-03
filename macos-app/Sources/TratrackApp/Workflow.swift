@@ -82,6 +82,11 @@ struct WorkflowTask: Decodable {
         transition = try container.decodeIfPresent(Transition.self, forKey: .transition)
     }
 
+    struct Position: Decodable {
+        var latitude: Double
+        var longitude: Double
+    }
+
     struct Details: Decodable {
         var timeField: String?
         var amountField: String?
@@ -90,6 +95,7 @@ struct WorkflowTask: Decodable {
         var tips: [String]?
         var tipsIdField: Int?
         var videos: [String]?
+        var position: Position?
         var updateAtDiff: String?   // "HH:MM:SS" travel time to this step
         var distanceDiff: Double?   // metres to this step
     }
@@ -123,6 +129,13 @@ struct Step: Identifiable {
     var tags: [String] { task.data?.tags ?? [] }
     var tips: [String] { task.data?.tips ?? [] }
     var tipsIdField: Int? { task.data?.tipsIdField }
+
+    /// Geographic coordinate for this step, if available.
+    /// The JSON stores the fields with lat/lon swapped, so we correct here.
+    var coordinate: (lat: Double, lon: Double)? {
+        guard let p = task.data?.position else { return nil }
+        return (lat: p.longitude, lon: p.latitude)
+    }
     var dayTotal: WorkflowTask.DayTotal? { task.transition?.wrapped }
 
     /// Humanised travel time from `update_at_diff` ("HH:MM:SS"), e.g. "2 hr 30 min".

@@ -33,7 +33,8 @@ struct ContentView: View {
                     title: model.title,
                     steps: workflow.steps,
                     onStepDoubleClick: { step in model.openVideoSegment(for: step) },
-                    onStepTips: { step in model.openTips(for: step) }
+                    onStepTips: { step in model.openTips(for: step) },
+                    onStepLocation: { step, inGoogle in model.openLocation(for: step, inGoogle: inGoogle) }
                 )
             } else {
                 emptyState
