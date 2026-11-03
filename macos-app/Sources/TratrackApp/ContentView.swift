@@ -31,7 +31,8 @@ struct ContentView: View {
                         .compactMap { $0 }
                         .joined(separator: " · "),
                     title: model.title,
-                    steps: workflow.steps
+                    steps: workflow.steps,
+                    onStepDoubleClick: { step in model.openVideoSegment(for: step) }
                 )
             } else {
                 emptyState
@@ -48,6 +49,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $model.showSettings) {
             SettingsView(model: model)
+        }
+        .sheet(item: $model.activeVideoSegment) { seg in
+            VideoSegmentPlayerView(url: seg.url, start: seg.start, end: seg.end)
         }
     }
 

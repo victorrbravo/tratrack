@@ -5,6 +5,7 @@ struct WorkflowCanvas: View {
     let kicker: String
     let title: String
     let steps: [Step]
+    var onStepDoubleClick: ((Step) -> Void)?
 
     var body: some View {
         ScrollView {
@@ -26,14 +27,10 @@ struct WorkflowCanvas: View {
                 VStack(spacing: 0) {
                     ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
                         if index > 0 {
-                            Image(systemName: "arrow.down")
-                                .font(.system(size: 22, weight: .ultraLight))
-                                .foregroundStyle(Paper.muted)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 22)
+                            TravelConnector(step: step)
                         }
                         let layout = NoteLayout(index: index)
-                        StepCard(step: step, layout: layout)
+                        StepCard(step: step, layout: layout, onVideoSection: { onStepDoubleClick?(step) })
                             .frame(maxWidth: 560)
                             .padding(.leading, layout.inset)
                             .frame(maxWidth: .infinity, alignment: layout.alignment)
@@ -76,6 +73,7 @@ struct WorkflowCanvas: View {
 struct StepCard: View {
     let step: Step
     let layout: NoteLayout
+    var onVideoSection: (() -> Void)?
 
     var body: some View {
         HStack(alignment: .top, spacing: 26) {
@@ -130,6 +128,17 @@ struct StepCard: View {
         }
         .shadow(color: .black.opacity(0.14), radius: 1.5, y: -1)
         .rotationEffect(.degrees(layout.tilt))
+        .contextMenu {
+            if let seg = step.videoSegment {
+                Button("Video section \(formatSec(seg.start)) \(formatSec(seg.end))") {
+                    onVideoSection?()
+                }
+            }
+        }
+    }
+
+    private func formatSec(_ s: Double) -> String {
+        s.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(s))s" : String(format: "%.1fs", s)
     }
 
     /// Amount and attached videos, e.g. "$14,950.00 · 1 video".
@@ -157,6 +166,32 @@ struct StepCard: View {
         ]
         let words = step.keywords
         return groups.first { !$0.1.isDisjoint(with: words) }?.0 ?? "mappin.and.ellipse"
+    }
+}
+
+/// Arrow + travel time (left) and distance (right) between two steps.
+struct TravelConnector: View {
+    let step: Step
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 0) {
+            Text(step.travelTime ?? "")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Paper.muted)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.trailing, 18)
+
+            Image(systemName: "arrow.down")
+                .font(.system(size: 36, weight: .ultraLight))
+                .foregroundStyle(Paper.muted)
+
+            Text(step.travelDistance ?? "")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Paper.muted)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 18)
+        }
+        .padding(.vertical, 28)
     }
 }
 

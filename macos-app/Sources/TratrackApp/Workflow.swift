@@ -88,6 +88,8 @@ struct WorkflowTask: Decodable {
         var summary: String?
         var tags: [String]?
         var videos: [String]?
+        var updateAtDiff: String?   // "HH:MM:SS" travel time to this step
+        var distanceDiff: Double?   // metres to this step
     }
 
     struct Transition: Decodable {
@@ -117,6 +119,39 @@ struct Step: Identifiable {
     var amount: String? { task.data?.amountField }
     var videoCount: Int { task.data?.videos?.count ?? 0 }
     var dayTotal: WorkflowTask.DayTotal? { task.transition?.wrapped }
+
+    /// Humanised travel time from `update_at_diff` ("HH:MM:SS"), e.g. "2 hr 30 min".
+    var travelTime: String? {
+        guard let raw = task.data?.updateAtDiff else { return nil }
+        let parts = raw.split(separator: ":").compactMap { Int($0) }
+        guard parts.count == 3 else { return nil }
+        let h = parts[0], m = parts[1]
+        switch (h, m) {
+        case (0, 0): return nil
+        case (0, _): return "\(m) min"
+        case (_, 0): return "\(h) hr"
+        default:     return "\(h) hr \(m) min"
+        }
+    }
+
+    /// Humanised travel distance from `distance_diff` (metres), e.g. "1.7 km" or "476 m".
+    var travelDistance: String? {
+        guard let metres = task.data?.distanceDiff, metres > 0 else { return nil }
+        if metres >= 1000 {
+            let km = metres / 1000
+            return String(format: km < 10 ? "%.1f km" : "%.0f km", km)
+        }
+        return "\(Int(metres.rounded())) m"
+    }
+
+    /// Parses the first `videos` entry as `"<start> <end>"` seconds.
+    var videoSegment: (start: Double, end: Double)? {
+        guard let raw = task.data?.videos?.first else { return nil }
+        let parts = raw.split(separator: " ")
+        guard parts.count == 2,
+              let s = Double(parts[0]), let e = Double(parts[1]) else { return nil }
+        return (s, e)
+    }
 
     /// Where the route goes next, e.g. "Then on to Venetto." Tasks without a
     /// summary (the keyed layout) show this instead.

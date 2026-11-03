@@ -2,6 +2,13 @@ import AppKit
 import Observation
 import UniformTypeIdentifiers
 
+struct VideoSegment: Identifiable {
+    let id = UUID()
+    let url: URL
+    let start: Double
+    let end: Double
+}
+
 @MainActor
 @Observable
 final class AppModel {
@@ -17,6 +24,8 @@ final class AppModel {
     var lastResultJSON: String?
     var isUploading = false
     var isLoadingWorkflow = false
+    var localVideoURL: URL?
+    var activeVideoSegment: VideoSegment?
     var ticketString: String = UserDefaults.standard.string(forKey: "analysisTicket") ?? ""
     var apiKey: String = UserDefaults.standard.string(forKey: "modelAPIKey") ?? ""
     private var analysisTask: Task<Void, Never>?
@@ -52,6 +61,19 @@ final class AppModel {
     func openAnalysisDialog() { showAnalysisDialog = true }
     func openSettings() { showSettings = true }
 
+    func openVideoSegment(for step: Step) {
+        guard let url = localVideoURL else {
+            status = "No local video — click Upload Video and choose Local Only first."
+            return
+        }
+        guard let seg = step.videoSegment else {
+            status = "Step \"\(step.name)\" has no video segment data."
+            return
+        }
+        print("[AppModel] openVideoSegment \(step.name) [\(seg.start)s – \(seg.end)s] url=\(url.lastPathComponent)")
+        activeVideoSegment = VideoSegment(url: url, start: seg.start, end: seg.end)
+    }
+
     func loadJSON() {
         let examples = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("examples")
         if let url = chooseFile(of: .json, in: examples) {
@@ -59,17 +81,34 @@ final class AppModel {
         }
     }
 
-    /// Picks an mp4, uploads it to the Muse Files API, and stores the returned file_id
-    /// in fileIDInput so the Analyze/Run button becomes enabled.
+    /// Picks an mp4, then asks whether to upload to AI or use locally only.
+    /// "Local only" stores the path for video-segment playback without uploading.
+    /// "Upload to AI" sends it to the Muse Files API and stores the returned file_id.
     func uploadVideo() {
-        guard !apiKey.isEmpty else {
-            status = "Set your Muse API key in Settings first."
-            showSettings = true
-            return
-        }
         guard let url = chooseFile(of: .mpeg4Movie) else { return }
         guard url.pathExtension.lowercased() == "mp4" else {
             status = "Only .mp4 files are accepted (got .\(url.pathExtension))."
+            return
+        }
+
+        localVideoURL = url
+
+        let alert = NSAlert()
+        alert.messageText = "Upload \(url.lastPathComponent) to AI?"
+        alert.informativeText = "Upload it for AI analysis, or save the path locally to view video segments without uploading."
+        alert.addButton(withTitle: "Upload to AI")
+        alert.addButton(withTitle: "Local Only")
+        alert.alertStyle = .informational
+
+        if alert.runModal() == .alertSecondButtonReturn {
+            fileIDInput = url.path
+            status = "Video saved locally — ready to view segments."
+            return
+        }
+
+        guard !apiKey.isEmpty else {
+            status = "Set your Muse API key in Settings first."
+            showSettings = true
             return
         }
 
@@ -120,6 +159,7 @@ final class AppModel {
             return true
         case "mp4", "m4v":
             fileIDInput = url.path
+            localVideoURL = url
             status = nil
             return true
         default:
