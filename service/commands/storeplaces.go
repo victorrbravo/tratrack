@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -24,6 +25,12 @@ type newStoryOrder struct {
 	Summary     string `yaml:"summary"`
 	Email       string `yaml:"email"`
 	ContentType string `yaml:"content_type"`
+}
+
+type stepTipsOrder struct {
+	Action string   `yaml:"action"`
+	StepID int      `yaml:"step_id"`
+	Tips   []string `yaml:"tips"`
 }
 
 type flowStepOrder struct {
@@ -95,6 +102,11 @@ func StorePlaces(ctx context.Context, inputJSON string) (string, error) {
 		}
 	}
 
+	if err := storeAddTips(storyCtx, &query, ticket, sorted); err != nil {
+		log.Printf("[storeplaces] ✗ storeAddTips failed: %v", err)
+		return "", fmt.Errorf("adding tips: %w", err)
+	}
+
 	out, err := json.Marshal(storePlacesResult{Status: "ok", Ticket: ticket})
 	if err != nil {
 		return "", err
@@ -151,6 +163,97 @@ func storeAddFlowStep(ctx context.Context, query *database.IQuery, ticket int, p
 	}
 	_, err = input.ProcessInput(ctx, order, query)
 	return err
+}
+
+// storeAddTips fetches the just-stored flow steps via show_flow_data, matches
+// each place by name to get its step ID, then calls new_step_tips for every
+// place that carries tips. Tips are escaped before joining with ",".
+func storeAddTips(ctx context.Context, query *database.IQuery, ticket int, places []Place) error {
+	// Skip entirely if no place has tips.
+	hasTips := false
+	for _, p := range places {
+		if len(p.Tips) > 0 {
+			hasTips = true
+			break
+		}
+	}
+	if !hasTips {
+		return nil
+	}
+
+	// 1. Fetch the stored flow to collect step IDs.
+	showOrder := fmt.Sprintf(
+		"action: show_flow_data\nticket: %d\nfilter:\nby_day: false\npage_number: 1\npage_size: 70\n",
+		ticket,
+	)
+	log.Printf("[storeplaces] fetching flow data for ticket=%d to get step IDs", ticket)
+	flowJSON, err := input.ProcessInput(ctx, []byte(showOrder), query)
+	if err != nil {
+		return fmt.Errorf("show_flow_data: %w", err)
+	}
+
+	// 2. Strip any leading garbage and parse the JSON response.
+	raw := []byte(flowJSON)
+	if i := bytes.IndexAny(raw, "{["); i > 0 {
+		raw = raw[i:]
+	}
+	var flow struct {
+		Tasks []struct {
+			Name string `json:"name"`
+			Data *struct {
+				ID interface{} `json:"id"`
+			} `json:"data"`
+		} `json:"tasks"`
+	}
+	if err := json.Unmarshal(raw, &flow); err != nil {
+		return fmt.Errorf("parsing show_flow_data response: %w", err)
+	}
+
+	// Build name → step_id map. JSON numbers decode as float64.
+	stepIDs := make(map[string]int, len(flow.Tasks))
+	for _, t := range flow.Tasks {
+		if t.Data == nil || t.Data.ID == nil {
+			continue
+		}
+		var id int
+		switch v := t.Data.ID.(type) {
+		case float64:
+			id = int(v)
+		case int:
+			id = v
+		}
+		if id > 0 {
+			stepIDs[t.Name] = id
+		}
+	}
+	log.Printf("[storeplaces] collected %d step IDs from flow", len(stepIDs))
+
+	// 3. Call new_step_tips for each place that has tips and a known step ID.
+	for _, place := range places {
+		if len(place.Tips) == 0 {
+			continue
+		}
+		id, ok := stepIDs[place.Name]
+		if !ok {
+			log.Printf("[storeplaces] ⚠ no step ID for %q, skipping tips", place.Name)
+			continue
+		}
+		tipsOrder, err := yaml.Marshal(stepTipsOrder{
+			Action: "new_step_tips",
+			StepID: id,
+			Tips:   storeEscapeAll(place.Tips),
+		})
+		if err != nil {
+			return fmt.Errorf("marshalling tips for %q: %w", place.Name, err)
+		}
+		log.Printf("[storeplaces] adding %d tips for %q (step_id=%d)", len(place.Tips), place.Name, id)
+		if _, err := input.ProcessInput(ctx, tipsOrder, query); err != nil {
+			log.Printf("[storeplaces] ✗ new_step_tips for %q: %v", place.Name, err)
+			return fmt.Errorf("new_step_tips for %q: %w", place.Name, err)
+		}
+		log.Printf("[storeplaces] ✓ tips added for %q", place.Name)
+	}
+	return nil
 }
 
 // storeEscape encodes commas and apostrophes the way stories-service expects.
