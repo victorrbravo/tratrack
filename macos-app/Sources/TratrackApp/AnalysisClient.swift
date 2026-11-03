@@ -70,6 +70,26 @@ struct AnalysisServiceClient: Sendable {
         }
         dbg("withGRPCClient block exited — startAndWatch done")
     }
+
+    /// Calls the CallStories RPC with a YAML order string and returns the result string.
+    func callStories(order: String) async throws -> String {
+        dbg("callStories → \(order.prefix(80).replacingOccurrences(of: "\n", with: "\\n"))")
+
+        let transport = try HTTP2ClientTransport.Posix(
+            target: .dns(host: host, port: port),
+            transportSecurity: .plaintext
+        )
+
+        return try await withGRPCClient(transport: transport) { grpcClient in
+            let service = Tratrack_Analysis_V1_AnalysisService.Client(wrapping: grpcClient)
+            var req = Tratrack_Analysis_V1_CallStoriesRequest()
+            req.order = order
+            dbg("→ callStories(order \(order.utf8.count) bytes)")
+            let resp = try await service.callStories(req)
+            dbg("← callStories result \(resp.result.count) chars")
+            return resp.result
+        }
+    }
 }
 
 // MARK: - helpers

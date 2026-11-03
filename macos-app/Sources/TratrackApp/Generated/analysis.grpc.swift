@@ -72,12 +72,26 @@ public enum Tratrack_Analysis_V1_AnalysisService: Sendable {
                 type: .serverStreaming
             )
         }
+        /// Namespace for "CallStories" metadata.
+        public enum CallStories: Sendable {
+            /// Request type for "CallStories".
+            public typealias Input = Tratrack_Analysis_V1_CallStoriesRequest
+            /// Response type for "CallStories".
+            public typealias Output = Tratrack_Analysis_V1_CallStoriesResponse
+            /// Descriptor for "CallStories".
+            public static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "tratrack.analysis.v1.AnalysisService"),
+                method: "CallStories",
+                type: .unary
+            )
+        }
         /// Descriptors for all methods in the "tratrack.analysis.v1.AnalysisService" service.
         public static let descriptors: [GRPCCore.MethodDescriptor] = [
             StartAnalysis.descriptor,
             StatusAnalysis.descriptor,
             LastResult.descriptor,
-            SubscribeAnalysis.descriptor
+            SubscribeAnalysis.descriptor,
+            CallStories.descriptor
         ]
     }
 }
@@ -176,6 +190,24 @@ extension Tratrack_Analysis_V1_AnalysisService {
             request: GRPCCore.StreamingServerRequest<Tratrack_Analysis_V1_SubscribeAnalysisRequest>,
             context: GRPCCore.ServerContext
         ) async throws -> GRPCCore.StreamingServerResponse<Tratrack_Analysis_V1_AnalysisEvent>
+
+        /// Handle the "CallStories" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Passes a YAML order string directly to stories-service input.ProcessInput.
+        ///
+        /// - Parameters:
+        ///   - request: A streaming request of `Tratrack_Analysis_V1_CallStoriesRequest` messages.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A streaming response of `Tratrack_Analysis_V1_CallStoriesResponse` messages.
+        func callStories(
+            request: GRPCCore.StreamingServerRequest<Tratrack_Analysis_V1_CallStoriesRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.StreamingServerResponse<Tratrack_Analysis_V1_CallStoriesResponse>
     }
 
     /// Service protocol for the "tratrack.analysis.v1.AnalysisService" service.
@@ -258,6 +290,24 @@ extension Tratrack_Analysis_V1_AnalysisService {
             request: GRPCCore.ServerRequest<Tratrack_Analysis_V1_SubscribeAnalysisRequest>,
             context: GRPCCore.ServerContext
         ) async throws -> GRPCCore.StreamingServerResponse<Tratrack_Analysis_V1_AnalysisEvent>
+
+        /// Handle the "CallStories" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Passes a YAML order string directly to stories-service input.ProcessInput.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Tratrack_Analysis_V1_CallStoriesRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A response containing a single `Tratrack_Analysis_V1_CallStoriesResponse` message.
+        func callStories(
+            request: GRPCCore.ServerRequest<Tratrack_Analysis_V1_CallStoriesRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.ServerResponse<Tratrack_Analysis_V1_CallStoriesResponse>
     }
 
     /// Simple service protocol for the "tratrack.analysis.v1.AnalysisService" service.
@@ -339,6 +389,24 @@ extension Tratrack_Analysis_V1_AnalysisService {
             response: GRPCCore.RPCWriter<Tratrack_Analysis_V1_AnalysisEvent>,
             context: GRPCCore.ServerContext
         ) async throws
+
+        /// Handle the "CallStories" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Passes a YAML order string directly to stories-service input.ProcessInput.
+        ///
+        /// - Parameters:
+        ///   - request: A `Tratrack_Analysis_V1_CallStoriesRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A `Tratrack_Analysis_V1_CallStoriesResponse` to respond with.
+        func callStories(
+            request: Tratrack_Analysis_V1_CallStoriesRequest,
+            context: GRPCCore.ServerContext
+        ) async throws -> Tratrack_Analysis_V1_CallStoriesResponse
     }
 }
 
@@ -385,6 +453,17 @@ extension Tratrack_Analysis_V1_AnalysisService.StreamingServiceProtocol {
             serializer: GRPCProtobuf.ProtobufSerializer<Tratrack_Analysis_V1_AnalysisEvent>(),
             handler: { request, context in
                 try await self.subscribeAnalysis(
+                    request: request,
+                    context: context
+                )
+            }
+        )
+        router.registerHandler(
+            forMethod: Tratrack_Analysis_V1_AnalysisService.Method.CallStories.descriptor,
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Tratrack_Analysis_V1_CallStoriesRequest>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Tratrack_Analysis_V1_CallStoriesResponse>(),
+            handler: { request, context in
+                try await self.callStories(
                     request: request,
                     context: context
                 )
@@ -438,6 +517,17 @@ extension Tratrack_Analysis_V1_AnalysisService.ServiceProtocol {
             context: context
         )
         return response
+    }
+
+    public func callStories(
+        request: GRPCCore.StreamingServerRequest<Tratrack_Analysis_V1_CallStoriesRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.StreamingServerResponse<Tratrack_Analysis_V1_CallStoriesResponse> {
+        let response = try await self.callStories(
+            request: GRPCCore.ServerRequest(stream: request),
+            context: context
+        )
+        return GRPCCore.StreamingServerResponse(single: response)
     }
 }
 
@@ -497,6 +587,19 @@ extension Tratrack_Analysis_V1_AnalysisService.SimpleServiceProtocol {
                 )
                 return [:]
             }
+        )
+    }
+
+    public func callStories(
+        request: GRPCCore.ServerRequest<Tratrack_Analysis_V1_CallStoriesRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.ServerResponse<Tratrack_Analysis_V1_CallStoriesResponse> {
+        return GRPCCore.ServerResponse<Tratrack_Analysis_V1_CallStoriesResponse>(
+            message: try await self.callStories(
+                request: request.message,
+                context: context
+            ),
+            metadata: [:]
         )
     }
 }
@@ -601,6 +704,29 @@ extension Tratrack_Analysis_V1_AnalysisService {
             deserializer: some GRPCCore.MessageDeserializer<Tratrack_Analysis_V1_AnalysisEvent>,
             options: GRPCCore.CallOptions,
             onResponse handleResponse: @Sendable @escaping (GRPCCore.StreamingClientResponse<Tratrack_Analysis_V1_AnalysisEvent>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "CallStories" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Passes a YAML order string directly to stories-service input.ProcessInput.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Tratrack_Analysis_V1_CallStoriesRequest` message.
+        ///   - serializer: A serializer for `Tratrack_Analysis_V1_CallStoriesRequest` messages.
+        ///   - deserializer: A deserializer for `Tratrack_Analysis_V1_CallStoriesResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        func callStories<Result>(
+            request: GRPCCore.ClientRequest<Tratrack_Analysis_V1_CallStoriesRequest>,
+            serializer: some GRPCCore.MessageSerializer<Tratrack_Analysis_V1_CallStoriesRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Tratrack_Analysis_V1_CallStoriesResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Tratrack_Analysis_V1_CallStoriesResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
     }
 
@@ -754,6 +880,40 @@ extension Tratrack_Analysis_V1_AnalysisService {
                 onResponse: handleResponse
             )
         }
+
+        /// Call the "CallStories" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > Passes a YAML order string directly to stories-service input.ProcessInput.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Tratrack_Analysis_V1_CallStoriesRequest` message.
+        ///   - serializer: A serializer for `Tratrack_Analysis_V1_CallStoriesRequest` messages.
+        ///   - deserializer: A deserializer for `Tratrack_Analysis_V1_CallStoriesResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        public func callStories<Result>(
+            request: GRPCCore.ClientRequest<Tratrack_Analysis_V1_CallStoriesRequest>,
+            serializer: some GRPCCore.MessageSerializer<Tratrack_Analysis_V1_CallStoriesRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Tratrack_Analysis_V1_CallStoriesResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Tratrack_Analysis_V1_CallStoriesResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Tratrack_Analysis_V1_AnalysisService.Method.CallStories.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
     }
 }
 
@@ -859,6 +1019,35 @@ extension Tratrack_Analysis_V1_AnalysisService.ClientProtocol {
             request: request,
             serializer: GRPCProtobuf.ProtobufSerializer<Tratrack_Analysis_V1_SubscribeAnalysisRequest>(),
             deserializer: GRPCProtobuf.ProtobufDeserializer<Tratrack_Analysis_V1_AnalysisEvent>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "CallStories" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > Passes a YAML order string directly to stories-service input.ProcessInput.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Tratrack_Analysis_V1_CallStoriesRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    public func callStories<Result>(
+        request: GRPCCore.ClientRequest<Tratrack_Analysis_V1_CallStoriesRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Tratrack_Analysis_V1_CallStoriesResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.callStories(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Tratrack_Analysis_V1_CallStoriesRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Tratrack_Analysis_V1_CallStoriesResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -982,6 +1171,39 @@ extension Tratrack_Analysis_V1_AnalysisService.ClientProtocol {
             metadata: metadata
         )
         return try await self.subscribeAnalysis(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "CallStories" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > Passes a YAML order string directly to stories-service input.ProcessInput.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    public func callStories<Result>(
+        _ message: Tratrack_Analysis_V1_CallStoriesRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Tratrack_Analysis_V1_CallStoriesResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Tratrack_Analysis_V1_CallStoriesRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.callStories(
             request: request,
             options: options,
             onResponse: handleResponse

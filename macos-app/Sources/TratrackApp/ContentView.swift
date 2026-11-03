@@ -53,52 +53,49 @@ struct ContentView: View {
 
     private var topBar: some View {
         HStack(spacing: 10) {
-            // Upload video → Muse Files API → populates fileIDInput
+            // Upload button — icon and label reflect current state
             Button(action: model.uploadVideo) {
                 if model.isUploading {
                     Label("Uploading…", systemImage: "arrow.up.circle")
+                } else if !model.fileIDInput.isEmpty {
+                    Label("Replace Video", systemImage: "video.fill")
                 } else {
                     Label("Upload Video", systemImage: "arrow.up.circle")
                 }
             }
             .disabled(model.isUploading)
-            .help(model.isUploading ? "Upload in progress…" : "Pick an .mp4 and upload it to Muse")
-
-            // Shows the current file ID; tap to change it manually
-            Button(action: model.openAnalysisDialog) {
-                Label(model.fileIDLabel, systemImage: "film")
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .frame(maxWidth: 180)
-            }
             .help(
-                model.fileIDInput.isEmpty
-                    ? "Enter a Muse file ID to start analysis"
-                    : model.fileIDInput
+                model.isUploading ? "Upload in progress…" :
+                model.fileIDInput.isEmpty ? "Pick an .mp4 and upload it to Muse" :
+                "Upload a different video (current: \(model.fileIDInput))"
             )
-
-            Button(action: model.loadJSON) {
-                Label(model.workflowFileName.map { "\($0).json" } ?? "Load JSON", systemImage: "doc.text")
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .frame(maxWidth: 180)
-            }
-            .help("Load a workflow JSON and draw its tasks")
 
             TextField("Search", text: $model.query)
                 .textFieldStyle(.roundedBorder)
-                .onSubmit(model.run)
 
+            // Analyze — disabled until a file ID is obtained from upload
             Button(action: model.run) {
-                Label("Run", systemImage: "play.fill")
+                Label("Analyze", systemImage: "play.fill")
             }
             .buttonStyle(.borderedProminent)
             .disabled(!model.canRun)
+            .help(model.fileIDInput.isEmpty ? "Upload a video first" : "Run analysis for \(model.fileIDInput)")
+
+            // View Path — enabled once analysis returns a ticket
+            Button(action: model.loadWorkflowFromStories) {
+                if model.isLoadingWorkflow {
+                    Label("Loading…", systemImage: "arrow.down.circle")
+                } else {
+                    Label("View Path", systemImage: "arrow.down.circle")
+                }
+            }
+            .disabled(model.ticketString.trimmingCharacters(in: .whitespaces).isEmpty || model.isLoadingWorkflow)
+            .help(model.ticketString.isEmpty ? "Run analysis first, or set a ticket in Settings" : "View workflow path for ticket \(model.ticketString)")
 
             Button(action: model.openSettings) {
                 Image(systemName: "gear")
             }
-            .help("Settings — Muse API key and preferences")
+            .help("Settings")
         }
         .controlSize(.large)
         .padding(12)
@@ -106,16 +103,14 @@ struct ContentView: View {
 
     private var emptyState: some View {
         VStack(spacing: 12) {
-            Image(systemName: "doc.text")
+            Image(systemName: "film")
                 .font(.system(size: 40, weight: .light))
                 .foregroundStyle(Paper.muted)
             Text("No workflow loaded")
                 .font(.title2.bold())
                 .foregroundStyle(Paper.ink)
-            Text("Choose Actions ▸ Load JSON, or drop a .json file here.")
+            Text("Drop a .json file here, or use Actions ▸ Load JSON.")
                 .foregroundStyle(Paper.muted)
-            Button("Load JSON…", action: model.loadJSON)
-                .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Paper.background)
@@ -152,17 +147,12 @@ private struct AnalysisDialogView: View {
 
             HStack {
                 Spacer()
-                Button("Cancel") {
-                    model.showAnalysisDialog = false
-                }
-                .keyboardShortcut(.cancelAction)
-
-                Button("Run Analysis") {
-                    startIfReady()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(model.fileIDInput.trimmingCharacters(in: .whitespaces).isEmpty)
-                .keyboardShortcut(.defaultAction)
+                Button("Cancel") { model.showAnalysisDialog = false }
+                    .keyboardShortcut(.cancelAction)
+                Button("Run Analysis") { startIfReady() }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.fileIDInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .keyboardShortcut(.defaultAction)
             }
         }
         .padding(24)

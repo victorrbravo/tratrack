@@ -16,9 +16,12 @@ final class AppModel {
     var analysisProgress: Int?
     var lastResultJSON: String?
     var isUploading = false
+    var isLoadingWorkflow = false
+    var ticketString: String = UserDefaults.standard.string(forKey: "analysisTicket") ?? ""
     var apiKey: String = UserDefaults.standard.string(forKey: "modelAPIKey") ?? ""
     private var analysisTask: Task<Void, Never>?
     private var uploadTask: Task<Void, Never>?
+    private var workflowTask: Task<Void, Never>?
 
     init() {
         // `swift run TratrackApp path/to/workflow.json` opens that file.
@@ -43,9 +46,7 @@ final class AppModel {
     }
 
     var canRun: Bool {
-        !isUploading &&
-        (!fileIDInput.trimmingCharacters(in: .whitespaces).isEmpty ||
-         !query.trimmingCharacters(in: .whitespaces).isEmpty)
+        !isUploading && !fileIDInput.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     func openAnalysisDialog() { showAnalysisDialog = true }
@@ -126,12 +127,11 @@ final class AppModel {
         }
     }
 
-    /// Starts the analysis using `fileIDInput` if set, otherwise `query`.
+    /// Starts the analysis using `fileIDInput`.
     func run() {
-        let fileID = fileIDInput.trimmingCharacters(in: .whitespaces)
-        let idFile = !fileID.isEmpty ? fileID : query.trimmingCharacters(in: .whitespaces)
+        let idFile = fileIDInput.trimmingCharacters(in: .whitespaces)
         guard !idFile.isEmpty else {
-            print("[AppModel] run() called but idFile is empty — doing nothing")
+            print("[AppModel] run() called but fileIDInput is empty — doing nothing")
             return
         }
 
@@ -172,6 +172,11 @@ final class AppModel {
         } else if update.isFinished {
             print("[AppModel] → COMPLETED, resultJSON length=\(update.resultJSON.count)")
             lastResultJSON = update.resultJSON
+            if let t = parseTicket(from: update.resultJSON) {
+                ticketString = "\(t)"
+                UserDefaults.standard.set(ticketString, forKey: "analysisTicket")
+                print("[AppModel] → ticket=\(t) saved to settings")
+            }
             status = "Analysis finished (job \(update.jobID))."
             analysisProgress = nil
             AnalysisNotifier.notifyFinished(jobID: update.jobID, failed: false)
@@ -179,6 +184,59 @@ final class AppModel {
             print("[AppModel] → in progress")
             status = "Analysis \(update.status.lowercased())… \(update.progress)%"
         }
+    }
+
+    /// Calls the CallStories gRPC method with a show_flow_data order using the
+    /// ticket stored in settings, then loads the returned JSON into the canvas.
+    func loadWorkflowFromStories() {
+        let ticket = ticketString.trimmingCharacters(in: .whitespaces)
+        guard !ticket.isEmpty else { return }
+
+        let order = """
+        action: show_flow_data
+        ticket: \(ticket)
+        filter:
+        by_day: false
+        page_number: 1
+        page_size: 70
+        """
+
+        workflowTask?.cancel()
+        isLoadingWorkflow = true
+        status = "Loading workflow for ticket \(ticket)…"
+
+        workflowTask = Task { [weak self] in
+            guard let self else { return }
+            print("[AppModel] loadWorkflowFromStories ticket=\(ticket)")
+            do {
+                let json = try await AnalysisServiceClient().callStories(order: order)
+                print("[AppModel] loadWorkflowFromStories: received \(json.count) chars")
+                guard var data = json.data(using: .utf8) else {
+                    throw CocoaError(.fileReadUnknown)
+                }
+                if let start = data.firstIndex(where: { $0 == UInt8(ascii: "{") || $0 == UInt8(ascii: "[") }),
+                   start > data.startIndex {
+                    data = Data(data[start...])
+                }
+                let loaded = try Workflow.decode(from: data)
+                self.workflow = loaded
+                self.workflowFileName = "ticket-\(ticket)"
+                self.isLoadingWorkflow = false
+                self.status = "Workflow loaded for ticket \(ticket)."
+            } catch {
+                print("[AppModel] loadWorkflowFromStories error: \(error)")
+                self.isLoadingWorkflow = false
+                self.status = "Failed to load workflow: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func parseTicket(from json: String) -> Int? {
+        struct Result: Decodable { var ticket: Int? }
+        guard let data = json.data(using: .utf8),
+              let result = try? JSONDecoder().decode(Result.self, from: data)
+        else { return nil }
+        return result.ticket
     }
 
     private func chooseFile(of type: UTType, in directory: URL? = nil) -> URL? {
