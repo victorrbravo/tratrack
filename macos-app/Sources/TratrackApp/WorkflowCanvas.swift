@@ -6,6 +6,7 @@ struct WorkflowCanvas: View {
     let title: String
     let steps: [Step]
     var onStepDoubleClick: ((Step) -> Void)?
+    var onStepTips: ((Step) -> Void)?
 
     var body: some View {
         ScrollView {
@@ -30,7 +31,12 @@ struct WorkflowCanvas: View {
                             TravelConnector(step: step)
                         }
                         let layout = NoteLayout(index: index)
-                        StepCard(step: step, layout: layout, onVideoSection: { onStepDoubleClick?(step) })
+                        StepCard(
+                            step: step,
+                            layout: layout,
+                            onVideoSection: { onStepDoubleClick?(step) },
+                            onTips: { onStepTips?(step) }
+                        )
                             .frame(maxWidth: 560)
                             .padding(.leading, layout.inset)
                             .frame(maxWidth: .infinity, alignment: layout.alignment)
@@ -74,6 +80,7 @@ struct StepCard: View {
     let step: Step
     let layout: NoteLayout
     var onVideoSection: (() -> Void)?
+    var onTips: (() -> Void)?
 
     var body: some View {
         HStack(alignment: .top, spacing: 26) {
@@ -114,6 +121,13 @@ struct StepCard: View {
                         .foregroundStyle(Paper.ink.opacity(0.7))
                         .padding(.top, 2)
                 }
+                if !step.tags.isEmpty {
+                    HStack {
+                        Spacer(minLength: 0)
+                        TagsPopoverButton(tags: step.tags)
+                    }
+                    .padding(.top, 10)
+                }
             }
             Spacer(minLength: 0)
         }
@@ -129,6 +143,13 @@ struct StepCard: View {
         .shadow(color: .black.opacity(0.14), radius: 1.5, y: -1)
         .rotationEffect(.degrees(layout.tilt))
         .contextMenu {
+            if !step.tips.isEmpty {
+                Button {
+                    onTips?()
+                } label: {
+                    Label("Tips", systemImage: "lightbulb")
+                }
+            }
             if let seg = step.videoSegment {
                 Button("Video section \(formatSec(seg.start)) \(formatSec(seg.end))") {
                     onVideoSection?()
@@ -224,6 +245,68 @@ struct DayTotalView: View {
         Rectangle()
             .fill(Paper.muted.opacity(0.35))
             .frame(height: 1)
+    }
+}
+
+// MARK: - Tags popover
+
+struct TagsPopoverButton: View {
+    let tags: [String]
+    @State private var show = false
+
+    var body: some View {
+        Button { show.toggle() } label: {
+            HStack(spacing: 4) {
+                Text("Tags")
+                    .font(.system(size: 12, weight: .medium))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+            }
+            .foregroundStyle(Paper.ink.opacity(0.65))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Paper.ink.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 7))
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $show, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Tags")
+                    .font(.system(size: 13, weight: .semibold))
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                Divider()
+                ForEach(tags, id: \.self) { tag in
+                    HStack(spacing: 10) {
+                        Circle()
+                            .fill(tagColor(tag))
+                            .frame(width: 8, height: 8)
+                        Text(tag)
+                            .font(.system(size: 13))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 5)
+                }
+                .padding(.bottom, 6)
+            }
+            .frame(minWidth: 160)
+        }
+    }
+
+    private func tagColor(_ tag: String) -> Color {
+        let palette: [Color] = [
+            Color(hex: 0x5C6BC0),
+            Color(hex: 0x4CAF50),
+            Color(hex: 0xAB47BC),
+            Color(hex: 0xFF9800),
+            Color(hex: 0x29B6F6),
+            Color(hex: 0xEF5350),
+            Color(hex: 0x26A69A),
+        ]
+        var h = 5381
+        for byte in tag.utf8 { h = (h &<< 5) &+ h &+ Int(byte) }
+        return palette[abs(h) % palette.count]
     }
 }
 

@@ -9,6 +9,12 @@ struct VideoSegment: Identifiable {
     let end: Double
 }
 
+struct TipsState: Identifiable {
+    let id = UUID()
+    let stepName: String
+    let tips: [String]
+}
+
 @MainActor
 @Observable
 final class AppModel {
@@ -26,6 +32,7 @@ final class AppModel {
     var isLoadingWorkflow = false
     var localVideoURL: URL?
     var activeVideoSegment: VideoSegment?
+    var activeTips: TipsState?
     var ticketString: String = UserDefaults.standard.string(forKey: "analysisTicket") ?? ""
     var apiKey: String = UserDefaults.standard.string(forKey: "modelAPIKey") ?? ""
     private var analysisTask: Task<Void, Never>?
@@ -60,6 +67,14 @@ final class AppModel {
 
     func openAnalysisDialog() { showAnalysisDialog = true }
     func openSettings() { showSettings = true }
+
+    func openTips(for step: Step) {
+        guard !step.tips.isEmpty else {
+            status = "Step \"\(step.name)\" has no tips."
+            return
+        }
+        activeTips = TipsState(stepName: step.name, tips: step.tips)
+    }
 
     func openVideoSegment(for step: Step) {
         guard let url = localVideoURL else {

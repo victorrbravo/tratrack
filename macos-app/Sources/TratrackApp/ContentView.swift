@@ -32,7 +32,8 @@ struct ContentView: View {
                         .joined(separator: " · "),
                     title: model.title,
                     steps: workflow.steps,
-                    onStepDoubleClick: { step in model.openVideoSegment(for: step) }
+                    onStepDoubleClick: { step in model.openVideoSegment(for: step) },
+                    onStepTips: { step in model.openTips(for: step) }
                 )
             } else {
                 emptyState
@@ -52,6 +53,9 @@ struct ContentView: View {
         }
         .sheet(item: $model.activeVideoSegment) { seg in
             VideoSegmentPlayerView(url: seg.url, start: seg.start, end: seg.end)
+        }
+        .sheet(item: $model.activeTips) { state in
+            TipsDialogView(stepName: state.stepName, tips: state.tips)
         }
     }
 
