@@ -58,7 +58,7 @@ struct AnalysisServiceClient: Sendable {
                     dbg("← event #\(eventCount): status=\(event.status) progress=\(event.progressPercent)% error=\(event.error.isEmpty ? "none" : event.error)")
                     await onUpdate(AnalysisUpdate(
                         jobID: event.jobID,
-                        status: "\(event.status)",
+                        status: "\(event.status)".uppercased(),
                         progress: Int(event.progressPercent),
                         resultJSON: event.resultJson,
                         error: event.error
