@@ -111,6 +111,7 @@ func StorePlaces(ctx context.Context, inputJSON string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	log.Printf("[storeplaces] ticket=%d — result JSON sent to macOS app: %s", ticket, string(out))
 	return string(out), nil
 }
 
