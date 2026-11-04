@@ -102,6 +102,7 @@ private func dbg(_ message: String, file: String = #file, line: Int = #line) {
 /// Posts a macOS banner notification when an analysis finishes.
 enum AnalysisNotifier {
     static func notifyFinished(jobID: String, failed: Bool) {
+        guard Bundle.main.bundleIdentifier != nil else { return }
         let center = UNUserNotificationCenter.current()
         center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
             guard granted else { return }

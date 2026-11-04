@@ -1,0 +1,28 @@
+About Tratrack (User)
+
+
+Whenever I travel to a new destination, or even revisit a place I’ve been to before, I often end up spending more money and enjoying less.
+
+Why? Because I don’t know how far apart the attractions are, what I’ll find at each location, or whether I’ll actually enjoy visiting them.
+
+I can watch videos from my favorite travel influencers, but then I have to take notes, research every place, and organize all the information myself. It’s a time-consuming and exhausting process.
+
+But now, TraTrack brings everything together and presents it in a simple, easy-to-understand way.
+
+With Muse AI, you can analyze any video and automatically extract all the relevant travel information.
+
+In just a few minutes, everything is organized and ready to save for your next adventure.
+
+Spend less money. Enjoy more.
+
+Travel smarter with TraTrack.
+
+
+
+About TraTack (Developer)
+
+
+The project has two apps. One thing is a service written in Golang. This service exposes a gRPC interface. It defines a few methods to analyze the video, receives a file ID to use in Meta Muse AI, analyzes a video, and generates a JSON file. After that, it returns the JSON via gRPC. The service also exposes another method called ‘callstories,’ which queries the stories service and searches in a database
+
+
+The second app is written in Swift for macOS and iOS. It’s a UI app that lets the user upload an MP4 video to the Meta Muse AI service via gRPC. The app calls the Analyze method, which returns a JSON response after a few minutes. The UI shows the processing progress, displays the returned JSON, and allows the user to view the video inside the app. It can also modify certain information in the database based on things like location, tags, and other metadata, while keeping the video accessible within the UI.
