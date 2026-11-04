@@ -8,6 +8,7 @@ struct WorkflowCanvas: View {
     var onStepDoubleClick: ((Step) -> Void)?
     var onStepTips: ((Step) -> Void)?
     var onStepLocation: ((Step, Bool) -> Void)?
+    var onStepAddTag: ((Step) -> Void)?
 
     var body: some View {
         ScrollView {
@@ -23,7 +24,8 @@ struct WorkflowCanvas: View {
                             layout: layout,
                             onVideoSection: { onStepDoubleClick?(step) },
                             onTips: { onStepTips?(step) },
-                            onLocation: { inGoogle in onStepLocation?(step, inGoogle) }
+                            onLocation: { inGoogle in onStepLocation?(step, inGoogle) },
+                            onAddTag: { onStepAddTag?(step) }
                         )
                             .frame(maxWidth: 560)
                             .padding(.leading, layout.inset)
@@ -69,6 +71,7 @@ struct StepCard: View {
     var onVideoSection: (() -> Void)?
     var onTips: (() -> Void)?
     var onLocation: ((_ inGoogle: Bool) -> Void)?
+    var onAddTag: (() -> Void)?
 
     var body: some View {
         HStack(alignment: .top, spacing: 26) {
@@ -169,6 +172,13 @@ struct StepCard: View {
             if let seg = step.videoSegment {
                 Button("Video section \(formatSec(seg.start)) \(formatSec(seg.end))") {
                     onVideoSection?()
+                }
+            }
+            if step.taskDataId != nil {
+                Button {
+                    onAddTag?()
+                } label: {
+                    Label("Add Tag", systemImage: "tag.badge.plus")
                 }
             }
         }

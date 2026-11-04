@@ -92,6 +92,7 @@ struct WorkflowTask: Decodable {
         var amountField: String?
         var summary: String?
         var tags: [String]?
+        var id: Int?
         var tips: [String]?
         var tipsIdField: Int?
         var videos: [String]?
@@ -109,6 +110,13 @@ struct WorkflowTask: Decodable {
             tips        = try? c.decodeIfPresent([String].self, forKey: .tips)
             videos      = try? c.decodeIfPresent([String].self, forKey: .videos)
             position    = try? c.decodeIfPresent(Position.self, forKey: .position)
+
+            // id can arrive as Int or Double
+            if let i = try? c.decodeIfPresent(Int.self, forKey: .id) {
+                id = i
+            } else if let d = try? c.decodeIfPresent(Double.self, forKey: .id) {
+                id = Int(d)
+            }
 
             // tipsIdField can arrive as Int or Double
             if let i = try? c.decodeIfPresent(Int.self, forKey: .tipsIdField) {
@@ -134,7 +142,7 @@ struct WorkflowTask: Decodable {
         }
 
         enum CodingKeys: String, CodingKey {
-            case timeField, amountField, summary, tags, tips, tipsIdField, videos, position
+            case id, timeField, amountField, summary, tags, tips, tipsIdField, videos, position
             case updateAtDiff, distanceDiff
         }
     }
@@ -168,6 +176,7 @@ struct Step: Identifiable {
     var tags: [String] { task.data?.tags ?? [] }
     var tips: [String] { task.data?.tips ?? [] }
     var tipsIdField: Int? { task.data?.tipsIdField }
+    var taskDataId: Int? { task.data?.id }
 
     /// Geographic coordinate for this step, if available.
     /// The JSON stores the fields with lat/lon swapped, so we correct here.

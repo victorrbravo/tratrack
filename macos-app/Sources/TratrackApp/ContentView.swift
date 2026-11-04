@@ -34,7 +34,8 @@ struct ContentView: View {
                     steps: workflow.steps,
                     onStepDoubleClick: { step in model.openVideoSegment(for: step) },
                     onStepTips: { step in model.openTips(for: step) },
-                    onStepLocation: { step, inGoogle in model.openLocation(for: step, inGoogle: inGoogle) }
+                    onStepLocation: { step, inGoogle in model.openLocation(for: step, inGoogle: inGoogle) },
+                    onStepAddTag: { step in model.openAddTag(for: step) }
                 )
             } else {
                 emptyState
@@ -57,6 +58,11 @@ struct ContentView: View {
         }
         .sheet(item: $model.activeTips) { state in
             TipsDialogView(stepName: state.stepName, tips: state.tips)
+        }
+        .sheet(item: $model.pendingTag) { pending in
+            AddTagDialogView(pending: pending) { stepDataId, tag in
+                model.addTag(stepDataId: stepDataId, tag: tag)
+            }
         }
     }
 
@@ -118,7 +124,7 @@ struct ContentView: View {
             Image(systemName: "film")
                 .font(.system(size: 40, weight: .light))
                 .foregroundStyle(Paper.muted)
-            Text("No workflow loaded")
+            Text("No travel loaded")
                 .font(.title2.bold())
                 .foregroundStyle(Paper.ink)
             Text("Drop a .json file here, or use Actions ▸ Load JSON.")

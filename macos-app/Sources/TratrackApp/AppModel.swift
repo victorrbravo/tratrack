@@ -15,6 +15,12 @@ struct TipsState: Identifiable {
     let tips: [String]
 }
 
+struct PendingTag: Identifiable {
+    let id = UUID()
+    let stepDataId: Int
+    let stepName: String
+}
+
 @MainActor
 @Observable
 final class AppModel {
@@ -34,6 +40,7 @@ final class AppModel {
     var localVideoURL: URL?
     var activeVideoSegment: VideoSegment?
     var activeTips: TipsState?
+    var pendingTag: PendingTag?
     var ticketString: String = UserDefaults.standard.string(forKey: "analysisTicket") ?? ""
     var apiKey: String = UserDefaults.standard.string(forKey: "modelAPIKey") ?? ""
     private var analysisTask: Task<Void, Never>?
@@ -85,6 +92,31 @@ final class AppModel {
                 self.status = nil
             } catch {
                 self.status = "Failed to load tips: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    func openAddTag(for step: Step) {
+        guard let dataId = step.taskDataId else {
+            status = "Step \"\(step.name)\" has no ID."
+            return
+        }
+        pendingTag = PendingTag(stepDataId: dataId, stepName: step.name)
+    }
+
+    func addTag(stepDataId: Int, tag: String) {
+        let trimmed = tag.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let order = "action: add_tag_by_pk_tracking\npk_tracking: \(stepDataId)\ntag: \(trimmed)\n"
+        status = "Adding tag…"
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                _ = try await AnalysisServiceClient().callStories(order: order)
+                self.status = nil
+                self.loadWorkflowFromStories()
+            } catch {
+                self.status = "Failed to add tag: \(error.localizedDescription)"
             }
         }
     }
