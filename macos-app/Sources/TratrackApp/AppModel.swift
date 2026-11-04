@@ -43,6 +43,11 @@ final class AppModel {
     var pendingTag: PendingTag?
     var ticketString: String = UserDefaults.standard.string(forKey: "analysisTicket") ?? ""
     var apiKey: String = UserDefaults.standard.string(forKey: "modelAPIKey") ?? ""
+
+    private var videoTicketMap: [String: Int] {
+        get { UserDefaults.standard.dictionary(forKey: "videoTicketMap") as? [String: Int] ?? [:] }
+        set { UserDefaults.standard.set(newValue, forKey: "videoTicketMap") }
+    }
     private var analysisTask: Task<Void, Never>?
     private var uploadTask: Task<Void, Never>?
     private var workflowTask: Task<Void, Never>?
@@ -206,7 +211,13 @@ final class AppModel {
         if alert.runModal() == .alertSecondButtonReturn {
             fileIDInput = url.path
             isVideoLoaded = true
-            status = "Video saved locally — ready to search."
+            if let ticket = videoTicketMap[url.lastPathComponent] {
+                ticketString = "\(ticket)"
+                UserDefaults.standard.set(ticketString, forKey: "analysisTicket")
+                status = "Video loaded — ticket \(ticket) restored."
+            } else {
+                status = "Video saved locally — ready to analyze."
+            }
             return
         }
 
@@ -264,7 +275,15 @@ final class AppModel {
         case "mp4", "m4v":
             fileIDInput = url.path
             localVideoURL = url
-            status = nil
+            if let ticket = videoTicketMap[url.lastPathComponent] {
+                ticketString = "\(ticket)"
+                UserDefaults.standard.set(ticketString, forKey: "analysisTicket")
+                isVideoLoaded = true
+                status = "Video loaded — ticket \(ticket) restored."
+            } else {
+                isVideoLoaded = false
+                status = nil
+            }
             return true
         default:
             return false
@@ -320,6 +339,12 @@ final class AppModel {
                 ticketString = "\(t)"
                 UserDefaults.standard.set(ticketString, forKey: "analysisTicket")
                 print("[AppModel] → ticket=\(t) saved to settings")
+                if let name = localVideoURL?.lastPathComponent {
+                    var map = videoTicketMap
+                    map[name] = t
+                    videoTicketMap = map
+                    print("[AppModel] → saved association \(name) → \(t)")
+                }
             }
             status = "Analysis finished (job \(update.jobID))."
             analysisProgress = nil
