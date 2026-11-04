@@ -88,27 +88,20 @@ struct ContentView: View {
             TextField("Filter", text: $model.query)
                 .textFieldStyle(.roundedBorder)
 
-            if model.isVideoLoaded {
-                // Search — calls View Path action with current filter text
-                Button(action: model.loadWorkflowFromStories) {
-                    if model.isLoadingWorkflow {
-                        Label("Loading…", systemImage: "magnifyingglass")
-                    } else {
-                        Label("Search", systemImage: "magnifyingglass")
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(model.ticketString.trimmingCharacters(in: .whitespaces).isEmpty || model.isLoadingWorkflow)
-                .help(model.ticketString.isEmpty ? "Run analysis first, or set a ticket in Settings" : "Search workflow for ticket \(model.ticketString)")
-            } else {
-                // Analyze — disabled until a file ID is set
-                Button(action: model.run) {
-                    Label("Analyze", systemImage: "play.fill")
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!model.canRun)
-                .help(model.fileIDInput.isEmpty ? "Upload a video first" : "Run analysis for \(model.fileIDInput)")
+            // Analyze — disabled until a file ID is set
+            Button(action: model.run) {
+                Label("Analyze", systemImage: "play.fill")
             }
+            .buttonStyle(.borderedProminent)
+            .disabled(!model.canRun)
+            .help(model.fileIDInput.isEmpty ? "Upload a video first" : "Run analysis for \(model.fileIDInput)")
+
+            // Search — always enabled; uses the ticket from Settings
+            Button(action: model.loadWorkflowFromStories) {
+                    Label("Search", systemImage: "magnifyingglass")
+            }
+            .buttonStyle(.borderedProminent)
+            .help(model.ticketString.isEmpty ? "Set a ticket in Settings to search" : "Search workflow for ticket \(model.ticketString)")
 
             Button(action: model.openSettings) {
                 Image(systemName: "gear")

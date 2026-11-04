@@ -10,9 +10,8 @@ struct AnalysisUpdate: Sendable {
     var progress: Int
     var resultJSON: String
     var error: String
-
-    var isFinished: Bool { status == "COMPLETED" }
-    var isFailed: Bool { status == "FAILED" }
+    var isFinished: Bool
+    var isFailed: Bool
 }
 
 /// Talks to the tratrack analysis gRPC service (service/cmd/server).
@@ -24,7 +23,9 @@ struct AnalysisServiceClient: Sendable {
     var port = 50051
 
     /// Starts a job for `idFile` and calls `onUpdate` for every pushed event,
-    /// returning after the terminal (COMPLETED/FAILED) event.
+    /// returning after the terminal (COMPLETED/FAILED) event. Falls back to
+    /// LastResult when the stream closes without delivering a terminal event,
+    /// so the UI never gets stuck on "Analyze" after a successful run.
     func startAndWatch(idFile: String, onUpdate: @escaping @Sendable (AnalysisUpdate) async -> Void) async throws {
         dbg("connecting to \(host):\(port) for idFile=\(idFile)")
 
@@ -50,25 +51,56 @@ struct AnalysisServiceClient: Sendable {
             subscribeRequest.jobID = jobID
             dbg("→ SubscribeAnalysis(jobID: \(jobID)) — waiting for server events")
 
+            let sawTerminal = SendableBox(false)
             try await service.subscribeAnalysis(subscribeRequest) { response in
                 dbg("SubscribeAnalysis stream opened")
                 var eventCount = 0
                 for try await event in response.messages {
                     eventCount += 1
-                    dbg("← event #\(eventCount): status=\(event.status) progress=\(event.progressPercent)% error=\(event.error.isEmpty ? "none" : event.error)")
+                    let isFinished = event.status == .completed
+                    let isFailed = event.status == .failed
+                    dbg("← event #\(eventCount): status=\(event.status) progress=\(event.progressPercent)% resultJson=\(event.resultJson.count) chars isFinished=\(isFinished) isFailed=\(isFailed)")
+                    if isFinished || isFailed { sawTerminal.value = true }
                     await onUpdate(AnalysisUpdate(
                         jobID: event.jobID,
-                        status: "\(event.status)".uppercased(),
+                        status: "\(event.status)",
                         progress: Int(event.progressPercent),
                         resultJSON: event.resultJson,
-                        error: event.error
+                        error: event.error,
+                        isFinished: isFinished,
+                        isFailed: isFailed
                     ))
                 }
-                dbg("SubscribeAnalysis stream closed after \(eventCount) event(s)")
+                dbg("SubscribeAnalysis stream closed after \(eventCount) event(s), sawTerminal=\(sawTerminal.value)")
             }
-            dbg("subscribeAnalysis completed for jobID=\(jobID)")
+            dbg("subscribeAnalysis completed for jobID=\(jobID) sawTerminal=\(sawTerminal.value)")
+
+            // Fallback: if the stream ended without a terminal event, fetch the
+            // final state via LastResult so the UI still gets the ticket.
+            if !sawTerminal.value {
+                dbg("no terminal event received — calling LastResult as fallback")
+                let last = try await service.lastResult(Tratrack_Analysis_V1_LastResultRequest())
+                let isFinished = last.status == .completed
+                let isFailed = last.status == .failed
+                dbg("← LastResult jobID=\(last.jobID) status=\(last.status) resultJson=\(last.resultJson.count) chars")
+                await onUpdate(AnalysisUpdate(
+                    jobID: last.jobID,
+                    status: "\(last.status)",
+                    progress: isFinished ? 100 : 0,
+                    resultJSON: last.resultJson,
+                    error: "",
+                    isFinished: isFinished,
+                    isFailed: isFailed
+                ))
+            }
         }
         dbg("withGRPCClient block exited — startAndWatch done")
+    }
+
+    /// Mutable box for tracking stream state from inside a @Sendable closure.
+    private final class SendableBox<T>: @unchecked Sendable {
+        var value: T
+        init(_ value: T) { self.value = value }
     }
 
     /// Calls the CallStories RPC with a YAML order string and returns the result string.

@@ -120,9 +120,33 @@ psql -U stories -d stories -f service/data/stories.sql
 
 ### 2. Go service
 
+Before running the service, set the environment variables (edit `service/.env`):
+
+```bash
+# storeplaces.go — database and user settings
+DB_HOST=localhost
+DB_NAME=stories
+DB_PORT=5432
+DB_USER=stories
+DB_PASS=stories
+USER_ID=2
+EMAIL=you@example.com
+CONTENT_TYPE=Senda
+
+# Analysis gRPC service
+GRPC_ADDR=:50051
+ANALYSIS_DURATION=5m
+# Muse API key — set this to run the real 4-step pipeline; leave empty for simulated mode
+MODEL_API_KEY=your-muse-api-key-here
+# City or country used to geocode places (default: Paris)
+ANALYSIS_LOCATION=Paris
+```
+
+Then start the service:
+
 ```bash
 cp service/.env.example service/.env
-# Edit .env — set MODEL_API_KEY to your Muse API key
+# Edit .env with the values above
 cd service
 go run ./cmd/server
 # gRPC server listening on :50051
@@ -136,6 +160,10 @@ swift run
 ```
 
 Open **Settings** (gear icon) and enter your **Muse API key**. Then click **Upload Video** to get started.
+
+### 4. View an existing travel graph
+
+To open a travel canvas that was already analyzed (instead of re-running the pipeline), open **Settings** (gear icon) and set the **Ticket** field to the ticket number saved from a previous analysis — for example `273` — then close Settings and click **Search**. The canvas for that ticket is loaded from the stories-service database.
 
 ---
 

@@ -339,12 +339,12 @@ final class AppModel {
             analysisProgress = nil
             AnalysisNotifier.notifyFinished(jobID: update.jobID, failed: true)
         } else if update.isFinished {
-            print("[AppModel] → COMPLETED, resultJSON length=\(update.resultJSON.count)")
+            print("[AppModel] → COMPLETED, resultJSON=\(update.resultJSON)")
             lastResultJSON = update.resultJSON
             if let t = parseTicket(from: update.resultJSON) {
                 ticketString = "\(t)"
                 UserDefaults.standard.set(ticketString, forKey: "analysisTicket")
-                print("[AppModel] → ticket=\(t) saved to settings")
+                print("[AppModel] → ticket=\(t) saved to Settings ticket field")
                 if let name = localVideoURL?.lastPathComponent {
                     var map = videoTicketMap
                     map["\(t)"] = name
@@ -411,10 +411,10 @@ final class AppModel {
 
     private func parseTicket(from json: String) -> Int? {
         struct Result: Decodable { var ticket: Int? }
-        guard let data = json.data(using: .utf8),
-              let result = try? JSONDecoder().decode(Result.self, from: data)
-        else { return nil }
-        return result.ticket
+        guard var data = json.data(using: .utf8) else { return nil }
+        if let start = data.firstIndex(where: { $0 == UInt8(ascii: "{") || $0 == UInt8(ascii: "[") }),
+           start > data.startIndex { data = Data(data[start...]) }
+        return (try? JSONDecoder().decode(Result.self, from: data))?.ticket
     }
 
     private func chooseFile(of type: UTType, in directory: URL? = nil) -> URL? {
