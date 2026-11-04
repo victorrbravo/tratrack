@@ -83,6 +83,7 @@ func StorePlaces(ctx context.Context, inputJSON string) (string, error) {
 		return "", fmt.Errorf("creating story: %w", err)
 	}
 	log.Printf("[storeplaces] ✓ story created: ticket=%d", ticket)
+	processing_ticket := ticket
 
 	sorted := make([]Place, len(analysis.Places))
 	copy(sorted, analysis.Places)
@@ -92,7 +93,7 @@ func StorePlaces(ctx context.Context, inputJSON string) (string, error) {
 	mediaDate := time.Date(now.Year(), now.Month(), now.Day(), 8, 0, 0, 0, now.Location())
 	for k, place := range sorted {
 		log.Printf("[storeplaces] adding step %d/%d %q (mediaDate=%s)", k+1, len(sorted), place.Name, mediaDate.Format("15:04"))
-		if err := storeAddFlowStep(storyCtx, &query, ticket, place, mediaDate); err != nil {
+		if err := storeAddFlowStep(storyCtx, &query, processing_ticket, place, mediaDate); err != nil {
 			log.Printf("[storeplaces] ✗ addFlowStep %q failed: %v", place.Name, err)
 			return "", fmt.Errorf("adding place %q: %w", place.Name, err)
 		}
@@ -102,7 +103,7 @@ func StorePlaces(ctx context.Context, inputJSON string) (string, error) {
 		}
 	}
 
-	if err := storeAddTips(storyCtx, &query, ticket, sorted); err != nil {
+	if err := storeAddTips(storyCtx, &query, processing_ticket, sorted); err != nil {
 		log.Printf("[storeplaces] ✗ storeAddTips failed: %v", err)
 		return "", fmt.Errorf("adding tips: %w", err)
 	}
@@ -141,6 +142,7 @@ func storeCreateStory(ctx context.Context, query *database.IQuery, analysis Vide
 			ticket = id
 		}
 	}
+	log.Println("TICKET CREATED : |[storeplaces] creating story|")
 	if ticket == 0 {
 		return 0, fmt.Errorf("story %q created but not found for user %d", analysis.Name, userID)
 	}
