@@ -62,7 +62,7 @@ struct ContentView: View {
 
     private var topBar: some View {
         HStack(spacing: 10) {
-            // Upload button — icon and label reflect current state
+            // Upload button — label reflects current state
             Button(action: model.uploadVideo) {
                 if model.isUploading {
                     Label("Uploading…", systemImage: "arrow.up.circle")
@@ -79,27 +79,30 @@ struct ContentView: View {
                 "Upload a different video (current: \(model.fileIDInput))"
             )
 
-            TextField("Search", text: $model.query)
+            TextField("Filter", text: $model.query)
                 .textFieldStyle(.roundedBorder)
 
-            // Analyze — disabled until a file ID is obtained from upload
-            Button(action: model.run) {
-                Label("Analyze", systemImage: "play.fill")
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!model.canRun)
-            .help(model.fileIDInput.isEmpty ? "Upload a video first" : "Run analysis for \(model.fileIDInput)")
-
-            // View Path — enabled once analysis returns a ticket
-            Button(action: model.loadWorkflowFromStories) {
-                if model.isLoadingWorkflow {
-                    Label("Loading…", systemImage: "arrow.down.circle")
-                } else {
-                    Label("View Path", systemImage: "arrow.down.circle")
+            if model.isVideoLoaded {
+                // Search — calls View Path action with current filter text
+                Button(action: model.loadWorkflowFromStories) {
+                    if model.isLoadingWorkflow {
+                        Label("Loading…", systemImage: "magnifyingglass")
+                    } else {
+                        Label("Search", systemImage: "magnifyingglass")
+                    }
                 }
+                .buttonStyle(.borderedProminent)
+                .disabled(model.ticketString.trimmingCharacters(in: .whitespaces).isEmpty || model.isLoadingWorkflow)
+                .help(model.ticketString.isEmpty ? "Run analysis first, or set a ticket in Settings" : "Search workflow for ticket \(model.ticketString)")
+            } else {
+                // Analyze — disabled until a file ID is set
+                Button(action: model.run) {
+                    Label("Analyze", systemImage: "play.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!model.canRun)
+                .help(model.fileIDInput.isEmpty ? "Upload a video first" : "Run analysis for \(model.fileIDInput)")
             }
-            .disabled(model.ticketString.trimmingCharacters(in: .whitespaces).isEmpty || model.isLoadingWorkflow)
-            .help(model.ticketString.isEmpty ? "Run analysis first, or set a ticket in Settings" : "View workflow path for ticket \(model.ticketString)")
 
             Button(action: model.openSettings) {
                 Image(systemName: "gear")

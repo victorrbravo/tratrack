@@ -30,6 +30,7 @@ final class AppModel {
     var lastResultJSON: String?
     var isUploading = false
     var isLoadingWorkflow = false
+    var isVideoLoaded = false
     var localVideoURL: URL?
     var activeVideoSegment: VideoSegment?
     var activeTips: TipsState?
@@ -153,6 +154,7 @@ final class AppModel {
         }
 
         localVideoURL = url
+        isVideoLoaded = false
 
         let alert = NSAlert()
         alert.messageText = "Upload \(url.lastPathComponent) to AI?"
@@ -163,7 +165,8 @@ final class AppModel {
 
         if alert.runModal() == .alertSecondButtonReturn {
             fileIDInput = url.path
-            status = "Video saved locally — ready to view segments."
+            isVideoLoaded = true
+            status = "Video saved locally — ready to search."
             return
         }
 
@@ -280,6 +283,7 @@ final class AppModel {
             }
             status = "Analysis finished (job \(update.jobID))."
             analysisProgress = nil
+            isVideoLoaded = true
             AnalysisNotifier.notifyFinished(jobID: update.jobID, failed: false)
         } else {
             print("[AppModel] → in progress")
@@ -293,10 +297,11 @@ final class AppModel {
         let ticket = ticketString.trimmingCharacters(in: .whitespaces)
         guard !ticket.isEmpty else { return }
 
+        let filter = query.trimmingCharacters(in: .whitespaces)
         let order = """
         action: show_flow_data
         ticket: \(ticket)
-        filter:
+        filter: \(filter)
         by_day: false
         page_number: 1
         page_size: 70
