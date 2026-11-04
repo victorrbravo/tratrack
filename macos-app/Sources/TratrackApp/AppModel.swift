@@ -98,11 +98,12 @@ final class AppModel {
            start > data.startIndex { data = Data(data[start...]) }
 
         let decoder = JSONDecoder()
+        func unescape(_ s: String) -> String { s.replacingOccurrences(of: "#comma#", with: ",") }
         if let wrapper = try? decoder.decode(TipsWrapper.self, from: data), let items = wrapper.tips {
-            return items.map(\.tip)
+            return items.map { unescape($0.tip) }
         }
         if let items = try? decoder.decode([TipItem].self, from: data) {
-            return items.map(\.tip)
+            return items.map { unescape($0.tip) }
         }
         throw CocoaError(.fileReadUnknown)
     }
@@ -150,6 +151,13 @@ final class AppModel {
         guard let url = chooseFile(of: .mpeg4Movie) else { return }
         guard url.pathExtension.lowercased() == "mp4" else {
             status = "Only .mp4 files are accepted (got .\(url.pathExtension))."
+            return
+        }
+        let fileSizeBytes = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
+        let limitBytes = 50 * 1024 * 1024
+        guard fileSizeBytes <= limitBytes else {
+            let mb = Double(fileSizeBytes) / (1024 * 1024)
+            status = String(format: "File too large (%.1f MB). Maximum is 50 MB.", mb)
             return
         }
 
@@ -324,7 +332,8 @@ final class AppModel {
                    start > data.startIndex {
                     data = Data(data[start...])
                 }
-                let loaded = try Workflow.decode(from: data)
+                var loaded = try Workflow.decode(from: data)
+                loaded.tasks = loaded.tasks.filter { $0.name != "Start" }
                 self.workflow = loaded
                 self.workflowFileName = "ticket-\(ticket)"
                 self.isLoadingWorkflow = false

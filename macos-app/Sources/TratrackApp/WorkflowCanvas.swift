@@ -219,7 +219,7 @@ struct TravelConnector: View {
                 .padding(.trailing, 18)
 
             Image(systemName: "arrow.down")
-                .font(.system(size: 36, weight: .ultraLight))
+                .font(.system(size: 36, weight: .medium))
                 .foregroundStyle(Paper.muted)
 
             Text(step.travelDistance ?? "")

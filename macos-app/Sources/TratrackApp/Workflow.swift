@@ -96,8 +96,47 @@ struct WorkflowTask: Decodable {
         var tipsIdField: Int?
         var videos: [String]?
         var position: Position?
-        var updateAtDiff: String?   // "HH:MM:SS" travel time to this step
-        var distanceDiff: Double?   // metres to this step
+        var updateAtDiff: String?
+        var distanceDiff: Double?
+
+        // All fields use try? so a type mismatch on one field never kills the whole struct.
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            timeField   = try? c.decodeIfPresent(String.self,   forKey: .timeField)
+            amountField = try? c.decodeIfPresent(String.self,   forKey: .amountField)
+            summary     = try? c.decodeIfPresent(String.self,   forKey: .summary)
+            tags        = try? c.decodeIfPresent([String].self, forKey: .tags)
+            tips        = try? c.decodeIfPresent([String].self, forKey: .tips)
+            videos      = try? c.decodeIfPresent([String].self, forKey: .videos)
+            position    = try? c.decodeIfPresent(Position.self, forKey: .position)
+
+            // tipsIdField can arrive as Int or Double
+            if let i = try? c.decodeIfPresent(Int.self, forKey: .tipsIdField) {
+                tipsIdField = i
+            } else if let d = try? c.decodeIfPresent(Double.self, forKey: .tipsIdField) {
+                tipsIdField = Int(d)
+            }
+
+            // updateAtDiff arrives as a duration string ("01:00:00" / "1h0m0s") or seconds as a number
+            if let s = try? c.decodeIfPresent(String.self, forKey: .updateAtDiff) {
+                updateAtDiff = s
+            } else if let secs = try? c.decodeIfPresent(Double.self, forKey: .updateAtDiff), secs > 0 {
+                let t = Int(secs)
+                updateAtDiff = String(format: "%02d:%02d:00", t / 3600, (t % 3600) / 60)
+            }
+
+            // distanceDiff arrives as a number or a numeric string
+            if let d = try? c.decodeIfPresent(Double.self, forKey: .distanceDiff) {
+                distanceDiff = d
+            } else if let s = try? c.decodeIfPresent(String.self, forKey: .distanceDiff) {
+                distanceDiff = Double(s)
+            }
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case timeField, amountField, summary, tags, tips, tipsIdField, videos, position
+            case updateAtDiff, distanceDiff
+        }
     }
 
     struct Transition: Decodable {
@@ -138,12 +177,26 @@ struct Step: Identifiable {
     }
     var dayTotal: WorkflowTask.DayTotal? { task.transition?.wrapped }
 
-    /// Humanised travel time from `update_at_diff` ("HH:MM:SS"), e.g. "2 hr 30 min".
+    /// Humanised travel time from `update_at_diff`.
+    /// Handles both "HH:MM:SS" (static files) and "1h30m0s" (server response).
     var travelTime: String? {
-        guard let raw = task.data?.updateAtDiff else { return nil }
-        let parts = raw.split(separator: ":").compactMap { Int($0) }
-        guard parts.count == 3 else { return nil }
-        let h = parts[0], m = parts[1]
+        guard let raw = task.data?.updateAtDiff, !raw.isEmpty else { return nil }
+        let h: Int
+        let m: Int
+        if raw.contains(":") {
+            // "HH:MM:SS"
+            let parts = raw.split(separator: ":").compactMap { Int($0) }
+            guard parts.count >= 2 else { return nil }
+            h = parts[0]; m = parts[1]
+        } else if raw.contains("h") || raw.contains("m") {
+            // "1h30m0s" or "30m0s" — Go duration string
+            let hMatch = raw.firstMatch(of: /(\d+)h/)
+            let mMatch = raw.firstMatch(of: /(\d+)m/)
+            h = hMatch.flatMap { Int($0.1) } ?? 0
+            m = mMatch.flatMap { Int($0.1) } ?? 0
+        } else {
+            return nil
+        }
         switch (h, m) {
         case (0, 0): return nil
         case (0, _): return "\(m) min"
